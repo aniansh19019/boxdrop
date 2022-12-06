@@ -2,6 +2,7 @@ from fastcdc import fastcdc
 import sqlitedict
 import hashlib
 import difflib
+import uuid
 import os
 import random
 import queue
@@ -76,7 +77,7 @@ def build_directory_tree_metadata(sync_dir):
             rel_path = os.path.relpath(filepath, abs_path)
             # Add entry for file
             db_data = {
-            "id": str(random.randrange(0, 1000000000000)),
+            "id": uuid.uuid4().hex,
             "is_dir": False,
             "path": rel_path,
             "size": os.path.getsize(filepath),
@@ -97,7 +98,7 @@ def build_directory_tree_metadata(sync_dir):
         rel_path = os.path.relpath(root, abs_path)
         # Add entry for root
         db_data = {
-            "id": str(random.randrange(0, 1000000000000)),
+            "id": uuid.uuid4().hex,
             "is_dir": True,
             "path": rel_path,
             "size": os.path.getsize(root),
