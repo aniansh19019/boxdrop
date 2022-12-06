@@ -15,9 +15,14 @@ CACHE_SIZE = 1024 # Number of chunks to store in the offline cache
 SKIP_FILES = ['.DS_Store']
 
 # * set auto commit to False for performance
-file_db = sqlitedict.SqliteDict("internal_db/file.db", autocommit= True)
-chunk_db = sqlitedict.SqliteDict("internal_db/chunk_cache.db", autocommit=False, outer_stack= False)
-# file_db = sqlitedict.SqliteDict("internal_db/file.db")
+# file_db = sqlitedict.SqliteDict("internal_db/file.db", autocommit= True)
+# chunk_db = sqlitedict.SqliteDict("internal_db/chunk_cache.db", autocommit=False, outer_stack= False)
+
+def get_file_db():
+    return sqlitedict.SqliteDict("internal_db/file.db", autocommit= True)
+
+def get_chunk_db():
+    return sqlitedict.SqliteDict("internal_db/chunk_cache.db", autocommit=False, outer_stack= False)
 
 def get_hashes(chunks):
     retval = ""
@@ -29,7 +34,11 @@ def get_chunks(filename):
     return list(fastcdc(filename, MIN_CHUNK_SIZE, MAX_CHUNK_SIZE, MAX_CHUNK_SIZE, True, hashlib.sha256))
 
 
-def build_directory_tree(sync_dir):
+def build_directory_tree_metadata(sync_dir):
+    # * open db files
+    file_db = get_file_db()
+    chunk_db = get_chunk_db()
+
     abs_path = os.path.abspath(sync_dir)
     assert os.path.isdir(abs_path)
     retval = None
@@ -112,10 +121,17 @@ def build_directory_tree(sync_dir):
             retval = db_data['id']
         print('------------------------------')
     print("Directory Tree Built Successfully!")
+    # * close db files
+    file_db.close()
+    chunk_db.close()
     return retval
 
 
 def restore_directory_tree(parent_dir, root_id):
+     # * open db files
+    file_db = get_file_db()
+    chunk_db = get_chunk_db()
+
     root_record = file_db[root_id]
     assert root_record['is_dir']
 
@@ -143,18 +159,41 @@ def restore_directory_tree(parent_dir, root_id):
             else:
                 print("Rebuilding {}".format(child['path']))
                 chunk_hashes = str(child['chunks'][-1]).splitlines()
-                build_file(chunk_hashes, file_path)
+                build_file_from_chunks(chunk_hashes, file_path, file_db, chunk_db)
                 
+    # * close db files
+    file_db.close()
+    chunk_db.close()
     print("Directory rebuilt successfully from tree!")
                     
 
 def update_directory_tree(root_dir, changes):
     pass
 
-def delete_file(root_id):
+def delete_file_metadata(root_id):
     pass
 
-def build_file(chunk_hashes, file_path):
+def update_file_metadata(file_path):
+     # * open db files
+    file_db = get_file_db()
+    chunk_db = get_chunk_db()
+
+    # Update the given file's metadata
+    conn = file_db.conn
+    resp_queue = queue.Queue()
+    print(conn.execute("select * from unnamed", res=resp_queue))
+    print(resp_queue.get())
+
+    # * close db files
+    file_db.close()
+    chunk_db.close()
+
+    pass
+
+def move_file_metadata(src, dst):
+    pass
+
+def build_file_from_chunks(chunk_hashes, file_path, file_db, chunk_db):
     with open(file_path, "ab") as out_ref:
         total_hashes = len(chunk_hashes)
         current_hash = 1
@@ -166,50 +205,46 @@ def build_file(chunk_hashes, file_path):
             
 
 
-root_id = build_directory_tree("../example_sync_dir")
-# root_id = str(144632294965)
-print(root_id)
 
-restore_directory_tree("rebuilt_dir", root_id)
 
-def save_chunks(chunks):
-    for chunk in chunks:
-        # check if chunk already saved
-        with open("chunks/{}.chunk".format(chunk.hash), "wb") as chunk_file:
-            chunk_file.write(chunk.data)
+# def save_chunks(chunks):
+#     for chunk in chunks:
+#         # check if chunk already saved
+#         with open("chunks/{}.chunk".format(chunk.hash), "wb") as chunk_file:
+#             chunk_file.write(chunk.data)
         
-        pass
+#         pass
 
 
 
-result1 = list(fastcdc("sample1.txt", None, 1024, 1024, True, hashlib.sha256))
-result2 = list(fastcdc("sample2.txt", None, 1024, 1024, True, hashlib.sha256))
+# result1 = list(fastcdc("sample1.txt", None, 1024, 1024, True, hashlib.sha256))
+# result2 = list(fastcdc("sample2.txt", None, 1024, 1024, True, hashlib.sha256))
 
-# print(result1)
+# # print(result1)
 
-hash_str1 = get_hashes(result1)
-hash_str2 = get_hashes(result2)
+# hash_str1 = get_hashes(result1)
+# hash_str2 = get_hashes(result2)
 
-file1 = open("file1.txt", "w")
-file2 = open("file2.txt", "w")
+# file1 = open("file1.txt", "w")
+# file2 = open("file2.txt", "w")
 
-file1.write(hash_str1)
-file2.write(hash_str2)
+# file1.write(hash_str1)
+# file2.write(hash_str2)
 
-file1.close()
-file2.close()
+# file1.close()
+# file2.close()
 
 
 # save_chunks(result1)
 # os.system("diff -Naur file1.txt file2.txt")
 
-def stitch_file(metadata_file, out_file):
+# def stitch_file(metadata_file, out_file):
 
-    with open(metadata_file, "r") as meta_ref:
-        for chunk in meta_ref:
-            chunk = chunk[:-1]
-            with open(out_file, "ab") as out_ref:
-                out_ref.write(chunk_db[chunk])
+#     with open(metadata_file, "r") as meta_ref:
+#         for chunk in meta_ref:
+#             chunk = chunk[:-1]
+#             with open(out_file, "ab") as out_ref:
+#                 out_ref.write(chunk_db[chunk])
         
 
 # stitch_file("file1.txt", "new_sample1.txt")
@@ -227,6 +262,18 @@ def stitch_file(metadata_file, out_file):
 
 
 
+if __name__ == "__main__":
 
-file_db.close()
-chunk_db.close()
+    # root_id = build_directory_tree_metadata("../example_sync_dir")
+    # # root_id = str(144632294965)
+    # print(root_id)
+
+    # restore_directory_tree("rebuilt_dir", root_id)
+    update_file_metadata('')
+    pass
+
+
+
+
+# file_db.close()
+# chunk_db.close()
