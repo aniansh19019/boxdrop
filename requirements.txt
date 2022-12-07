@@ -1,0 +1,8 @@
+click==7.1.2
+click-default-group==1.2.2
+codetiming==1.4.0
+fastcdc==1.4.2
+humanize==2.6.0
+py-cpuinfo==6.0.0
+sqlitedict==2.1.0
+watchdog==2.2.0

@@ -4,13 +4,20 @@ from watchdog.events import PatternMatchingEventHandler
 import os
 import chunker
 
-# Also notify other devices
+counter = 0
+
+# TODO: Also notify other devices in the same event handlers
+# TODO: Watch for changes in the cloud
 
 def on_created(event):
-    print(f"hey, {event.src_path} has been created!")
+    print(f"New file created: {event.src_path}")
+    print("Updating metadata...")
+    chunker.create_file_metadata(event.src_path)
 
 def on_deleted(event):
-    print(f"what the f**k! Someone deleted {event.src_path}!")
+    print(f"File deleted: {event.src_path}")
+    print("Updating metadata...")
+    chunker.delete_file_metadata(event.src_path)
 
 def on_modified(event):
     # Tell the chunker to upload the modified chunks and to modify the metadata of this file
@@ -20,7 +27,17 @@ def on_modified(event):
 
 
 def on_moved(event):
-    print(f"ok ok ok, someone moved {event.src_path} to {event.dest_path}")
+    print(f"File moved from {event.src_path} to {event.dest_path}")
+    print("Updating metadata...")
+    chunker.move_file_metadata(event.src_path, event.dest_path)
+
+
+def on_any_event(event):
+    global counter
+    counter+=1
+    print(event)
+    print(f"counter:{counter}")
+    pass
 
 if __name__ == "__main__":
     patterns = ["*"]
@@ -32,6 +49,7 @@ if __name__ == "__main__":
     my_event_handler.on_deleted = on_deleted
     my_event_handler.on_modified = on_modified
     my_event_handler.on_moved = on_moved
+    # my_event_handler.on_any_event = on_any_event
     path = os.path.abspath("../example_sync_dir")
     assert os.path.exists(path)
     my_observer = Observer()

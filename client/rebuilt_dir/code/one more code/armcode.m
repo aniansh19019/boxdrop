@@ -15,7 +15,7 @@ function [q1_d_dot, q2_d_dot] = q_d_dot(t)
 q1_d_dot = (pi/6)*cos(t); 
 q2_d_dot = -(pi/6)*sin(t);
 end
-
+% this is a test comment
 
 function Xdot = qdoubledot(t,X)
 

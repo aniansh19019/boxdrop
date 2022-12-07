@@ -2,6 +2,10 @@
 # Also build a cli to take user input
 # The interface should have options for login, register, forgot password, logout, etc.
 # The interface should also have the option of selecting the root directory for the user.
+# The interface should also have the option of changing file versions.
+# The interface should also have the option of restoring deleted files.
+# The interface should also have the option of sharing files with other users.
+
 
 def user_email():
     '''

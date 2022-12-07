@@ -7,13 +7,19 @@ import os
 import random
 import queue
 import time
+import datetime
 
 random.randrange(0, 1000000000000)
 
 MAX_CHUNK_SIZE = 4096 # Max chunk size in bytes
 MIN_CHUNK_SIZE = 256 # Minimum chunk size in bytes
 CACHE_SIZE = 1024 # Number of chunks to store in the offline cache
-SKIP_FILES = ['.DS_Store']
+SKIP_FILES = ['.DS_Store', '__pycache__']
+ROOT_DIR = os.path.abspath('../example_sync_dir')
+
+# TODO: add chunks database to keep track of the use count of each chunk
+# TODO: add the option to restore deleted files
+# TODO: consider adding a queue of changes
 
 # * set auto commit to False for performance
 # file_db = sqlitedict.SqliteDict("internal_db/file.db", autocommit= True)
@@ -35,6 +41,80 @@ def get_chunks(filename):
     return list(fastcdc(filename, MIN_CHUNK_SIZE, MAX_CHUNK_SIZE, MAX_CHUNK_SIZE, True, hashlib.sha256))
 
 
+def chunk_and_upload_file(filepath, file_db, chunk_db):
+
+    file = os.path.basename(filepath)
+    # Check if file is to be skipped
+    if file in SKIP_FILES:
+        print("Skipping {}".format(filepath))
+        return
+    print("Uploading chunks for {}".format(file))
+    chunks = get_chunks(filepath)
+    print("Chunks Generated! Uploading Chunks!")
+    hash_str = get_hashes(chunks)
+    # Upload chunks
+    total_chunks = len(chunks)
+    current_chunk = 1
+    for chunk in chunks:
+        print("\rChunk {} of {}".format(current_chunk, total_chunks), end="")
+        if chunk not in chunk_db.keys():
+            chunk_db[chunk.hash] = {'hash': chunk.hash, 'data': chunk.data, 'use_count': 1}
+        current_chunk+=1
+    print()
+    chunk_db.commit()
+    print("Chunks Uploaded!")
+    rel_path = os.path.relpath(filepath, ROOT_DIR)
+    # Add entry for file
+    db_data = {
+    "id": uuid.uuid4().hex,
+    "version": 1,
+    "is_dir": False,
+    "is_deleted": False,
+    "path": rel_path,
+    "size": os.path.getsize(filepath),
+    "owner": "aniansh@yahoo.com",
+    "date_uploaded": datetime.datetime.now().timestamp(),
+    "date_created": os.path.getctime(filepath),
+    "date_modified": os.path.getmtime(filepath),
+    "chunks": [hash_str],
+    "editors": [],
+    "viewers": []
+    }
+    
+    # Add to internal db
+    file_db[db_data['id']] = db_data
+    # Reverse map to get id from  path
+    file_db[rel_path] = db_data['id']
+
+    return db_data['id']
+
+
+def create_directory_record(dir_path, file_db, chunk_db):
+    dir_path = os.path.abspath(dir_path)
+    rel_path = os.path.relpath(dir_path, ROOT_DIR)
+    # Add entry for directory
+    db_data = {
+            "id": uuid.uuid4().hex,
+            "version": 1,
+            "is_dir": True,
+            "is_deleted": False,
+            "path": rel_path,
+            "size": os.path.getsize(dir_path),
+            "owner": "aniansh@yahoo.com",
+            "date_uploaded": datetime.datetime.now().timestamp(),
+            "date_created": os.path.getctime(dir_path),
+            "date_modified": os.path.getmtime(dir_path),
+            "children": list(),
+            "editors": [],
+            "viewers": []
+            }
+    file_db[db_data['id']] = db_data
+    # Reverse map to get id from  path
+    file_db[rel_path] = db_data['id']
+    # repopulate_parent_directory(dir_path, db_data, file_db)
+    return db_data['id']
+   
+
 def build_directory_tree_metadata(sync_dir):
     # * open db files
     file_db = get_file_db()
@@ -43,7 +123,6 @@ def build_directory_tree_metadata(sync_dir):
     abs_path = os.path.abspath(sync_dir)
     assert os.path.isdir(abs_path)
     retval = None
-    dir_map = {}
     for (root, dirs, files ) in os.walk(abs_path, topdown=False):
         # Check if the directory is to be skipped
         rel_path = os.path.relpath(root, abs_path)
@@ -55,71 +134,19 @@ def build_directory_tree_metadata(sync_dir):
         root_children = []
         for file in files:
             filepath = os.path.join(root, file)
-            # Check if file is to be skipped
-            if file in SKIP_FILES:
-                print("Skipping {}".format(filepath))
-                continue
-            print("Uploading chunks for {}".format(file))
-            chunks = get_chunks(filepath)
-            print("Chunks Generated! Uploading Chunks!")
-            hash_str = get_hashes(chunks)
-            # Upload chunks
-            total_chunks = len(chunks)
-            current_chunk = 1
-            for chunk in chunks:
-                print("\rChunk {} of {}".format(current_chunk, total_chunks), end="")
-                if chunk not in chunk_db.keys():
-                    chunk_db[chunk.hash] = chunk.data
-                current_chunk+=1
-            print()
-            chunk_db.commit()
-            print("Chunks Uploaded!")
-            rel_path = os.path.relpath(filepath, abs_path)
-            # Add entry for file
-            db_data = {
-            "id": uuid.uuid4().hex,
-            "is_dir": False,
-            "path": rel_path,
-            "size": os.path.getsize(filepath),
-            "owner": "aniansh@yahoo.com",
-            "chunks": [hash_str],
-            }
-            root_children.append(db_data['id'])
-            # Add to internal db
-            file_db[db_data['id']] = db_data
+            file_id = chunk_and_upload_file(filepath, file_db, chunk_db)
+            root_children.append(file_id)
 
-             
-        # add dirs to children
-        print("Adding children dirs to parent map")
-        if root in dir_map.keys():
-            for dir_id in dir_map[root]:
-                root_children.append(dir_id)
 
-        rel_path = os.path.relpath(root, abs_path)
-        # Add entry for root
-        db_data = {
-            "id": uuid.uuid4().hex,
-            "is_dir": True,
-            "path": rel_path,
-            "size": os.path.getsize(root),
-            "owner": "aniansh@yahoo.com",
-            "children": root_children,
-            }
-        file_db[db_data['id']] = db_data
-
-        # make a map of directories and their parent directories
-        root_parent = os.path.dirname(root)
-        if root_parent not in dir_map.keys():
-            file_list = [db_data["id"]]
-            dir_map[root_parent] = file_list
-        else:
-            dir_map[root_parent].append(db_data["id"])
+        # Add root directory to db
+        dir_id = create_directory_record(root, file_db, chunk_db)
+        repopulate_parent_directory(root, file_db[dir_id],file_db)
 
         
         # return the id of the root
         if root == abs_path:
             print(root)
-            retval = db_data['id']
+            retval = dir_id
         print('------------------------------')
     print("Directory Tree Built Successfully!")
     # * close db files
@@ -150,6 +177,10 @@ def restore_directory_tree(parent_dir, root_id):
         print("Building contents of {}".format(item['path']))
         for child_id in item['children']:
             child = file_db[child_id]
+            # check if the child is deleted in the metadata
+            if child['is_deleted']:
+                # skip the child if it is deleted
+                continue
             file_path = child['path']
             file_path = os.path.join(parent_dir, file_path)
             file_path = os.path.abspath(file_path)
@@ -166,12 +197,64 @@ def restore_directory_tree(parent_dir, root_id):
     file_db.close()
     chunk_db.close()
     print("Directory rebuilt successfully from tree!")
-                    
 
-def update_directory_tree(root_dir, changes):
-    pass
 
-def delete_file_metadata(root_id):
+
+def create_file_metadata(file_path):
+    # * open db files
+    file_db = get_file_db()
+    chunk_db = get_chunk_db()
+    # rel_path = os.path.relpath(file_path, ROOT_DIR)
+
+    if os.path.isdir(file_path):
+        # Create directory record
+        create_directory_record(file_path, file_db, chunk_db)
+    elif os.path.isfile(file_path):
+        # Add entry for file
+        chunk_and_upload_file(file_path, file_db, chunk_db)
+    
+    # Repopulate the parent directory
+
+    print(file_path)
+    parent_path = os.path.dirname(file_path)
+    print(parent_path)
+    parent_rel_path = os.path.relpath(parent_path, ROOT_DIR)
+    parent_id = file_db[parent_rel_path]
+    parent_record = file_db[parent_id]
+    repopulate_parent_directory(parent_path, parent_record, file_db)
+
+    # close db files
+    file_db.close()
+    chunk_db.close()
+
+def delete_file_metadata(file_path):
+    # * open db files
+    file_db = get_file_db()
+    # chunk_db = get_chunk_db()
+    # Update the given file's metadata
+
+    rel_path = os.path.relpath(file_path, ROOT_DIR)
+    file_id = file_db[rel_path]
+    file_record = file_db[file_id]
+
+    file_record['is_deleted'] = True
+
+    # add deleted time
+    file_record['deleted_time'] = datetime.datetime.now().timestamp()
+
+
+
+    # update the metadata db
+    file_db[file_id] = file_record
+    
+
+    # * close db files
+    file_db.close()
+    # chunk_db.close()
+
+
+
+
     pass
 
 def update_file_metadata(file_path):
@@ -180,18 +263,140 @@ def update_file_metadata(file_path):
     chunk_db = get_chunk_db()
 
     # Update the given file's metadata
-    conn = file_db.conn
-    resp_queue = queue.Queue()
-    print(conn.execute("select * from unnamed", res=resp_queue))
-    print(resp_queue.get())
+
+    rel_path = os.path.relpath(file_path, ROOT_DIR)
+    file_id = file_db[rel_path]
+    file_record = file_db[file_id]
+
+    if os.path.isfile(file_path):
+        new_chunks = get_chunks(file_path)
+        new_hashes = get_hashes(new_chunks)
+        old_hash_set = set(str(file_record['chunks']).splitlines())
+        
+        # Upload all new chunks
+        total_hashes = len(new_chunks)
+        current_hash = 1
+        for chunk in new_chunks:
+            if chunk.hash not in old_hash_set:
+                if chunk.hash not in chunk_db.keys():
+                    print("\rProcessing New Chunk {} of {}".format(current_hash, total_hashes), end="")
+                    chunk_db[chunk.hash] = {'hash': chunk.hash, 'data': chunk.data, 'use_count': 1}
+                    current_hash += 1
+        
+        # commit changes to chunk db
+        chunk_db.commit()
+
+        print()
+
+        # Make changes to the metadata file
+
+
+        file_record['chunks'].append(new_hashes)
+        file_record['version'] += 1
+        file_record['date_modified'] = datetime.datetime.now().timestamp()
+
+        # update the metadata db
+        file_db[file_id] = file_record
+    
+    elif os.path.isdir(file_path):
+        # if a directory is updated, we need to repopulate the directory children
+        repopulate_parent_directory(file_path, file_record, file_db)
+
+    
 
     # * close db files
     file_db.close()
     chunk_db.close()
 
+    print(f"{file_path} metadata updated successfully!")
+
     pass
 
+
+def repopulate_parent_directory(dir_path, dir_record, file_db):
+    # * open db files
+    assert os.path.isdir(dir_path)
+    # file_db = get_file_db()
+    # chunk_db = get_chunk_db()
+
+    # Update the given directory's children field
+
+    # rel_path = os.path.relpath(dir_path, ROOT_DIR)
+    dir_id = dir_record['id']
+    # dir_record = file_db[dir_id]
+
+    # dir_record['children'] = []
+
+    real_contents = os.listdir(dir_path)
+
+    # * add new items to the children
+    for item in real_contents:
+        if item in SKIP_FILES:
+            continue
+        item_path = os.path.join(dir_path, item)
+        item_rel_path = os.path.relpath(item_path, ROOT_DIR)
+        item_id = file_db[item_rel_path]
+        print(dir_record)
+        # add only if the item does not already exist
+        # check if children exist at all
+        if item_id not in dir_record['children']:
+            dir_record['children'].append(item_id)
+
+    
+    # * remove items not in the directory
+    
+    items_to_remove = []
+    for child_id in dir_record['children']:
+        child_record = file_db[child_id]
+        child_rel_path = child_record['path']
+        child = os.path.basename(child_rel_path)
+        if child not in real_contents:
+            if not child_record['is_deleted']:
+                items_to_remove.append(child_id)
+    
+    for item in items_to_remove:
+        dir_record['children'].remove(item)
+
+
+    # update modified time
+    dir_record['date_modified'] = os.path.getmtime(dir_path)
+    # update the metadata db
+    file_db[dir_id] = dir_record
+
+    # * close db files
+    # file_db.close()
+    # chunk_db.close()
+
+    print(f"{dir_path} children field updated successfully!")
+
+    pass
+    
+
 def move_file_metadata(src, dst):
+    # * open db files
+    file_db = get_file_db()
+    # chunk_db = get_chunk_db()
+
+    # Update the given file's metadata
+
+    src_rel_path = os.path.relpath(src, ROOT_DIR)
+    dst_rel_path = os.path.relpath(dst, ROOT_DIR)
+    src_id = file_db[src_rel_path]
+    src_record = file_db[src_id]
+
+    src_record['path'] = dst_rel_path
+
+    # update the modified time
+    src_record['date_modified'] = os.path.getmtime(dst)
+
+    # update the metadata db
+    file_db[src_id] = src_record
+    file_db[dst_rel_path] = src_id
+
+    # * close db files
+    file_db.close()
+    # chunk_db.close()
+
     pass
 
 def build_file_from_chunks(chunk_hashes, file_path, file_db, chunk_db):
@@ -200,7 +405,7 @@ def build_file_from_chunks(chunk_hashes, file_path, file_db, chunk_db):
         current_hash = 1
         for hash in chunk_hashes:
             print("\rChunk {} of {}".format(current_hash, total_hashes), end="")
-            out_ref.write(chunk_db[hash])
+            out_ref.write(chunk_db[hash]['data'])
             current_hash += 1
         print()
             
@@ -208,73 +413,19 @@ def build_file_from_chunks(chunk_hashes, file_path, file_db, chunk_db):
 
 
 
-# def save_chunks(chunks):
-#     for chunk in chunks:
-#         # check if chunk already saved
-#         with open("chunks/{}.chunk".format(chunk.hash), "wb") as chunk_file:
-#             chunk_file.write(chunk.data)
-        
-#         pass
-
-
-
-# result1 = list(fastcdc("sample1.txt", None, 1024, 1024, True, hashlib.sha256))
-# result2 = list(fastcdc("sample2.txt", None, 1024, 1024, True, hashlib.sha256))
-
-# # print(result1)
-
-# hash_str1 = get_hashes(result1)
-# hash_str2 = get_hashes(result2)
-
-# file1 = open("file1.txt", "w")
-# file2 = open("file2.txt", "w")
-
-# file1.write(hash_str1)
-# file2.write(hash_str2)
-
-# file1.close()
-# file2.close()
-
-
-# save_chunks(result1)
-# os.system("diff -Naur file1.txt file2.txt")
-
-# def stitch_file(metadata_file, out_file):
-
-#     with open(metadata_file, "r") as meta_ref:
-#         for chunk in meta_ref:
-#             chunk = chunk[:-1]
-#             with open(out_file, "ab") as out_ref:
-#                 out_ref.write(chunk_db[chunk])
-        
-
-# stitch_file("file1.txt", "new_sample1.txt")
-
-
-# d = sqlitedict.SqliteDict("internal_db/chunk_cache.db", autocommit=True)
-
-# for chunk in result1:
-#     if chunk.hash not in d.keys():
-#         d[chunk.hash] = chunk.data
-#     else:
-#         print('chunk {} already present in db!'.format(chunk.hash))
-# d.close()
-
 
 
 
 if __name__ == "__main__":
 
     # root_id = build_directory_tree_metadata("../example_sync_dir")
-    # # root_id = str(144632294965)
-    # print(root_id)
+    root_id = '0dafd49005f14ba493deff20631bd811'
+    print(root_id)
 
-    # restore_directory_tree("rebuilt_dir", root_id)
-    update_file_metadata('')
+    restore_directory_tree("rebuilt_dir", root_id)
+    # update_file_metadata('')
     pass
 
 
 
 
-# file_db.close()
-# chunk_db.close()
