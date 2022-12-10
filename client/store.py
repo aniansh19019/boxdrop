@@ -1,4 +1,5 @@
 import boto3
+from botocore.exceptions import ClientError
 
 # S3 client
 s3 = boto3.client('s3')
@@ -10,7 +11,7 @@ response = s3.create_bucket(Bucket = bucketName)
 ## print(response)
 
 # Data file in S3
-file = 'data.txt'
+# file = 'data.txt'
 
 
 # Do all the initialisation, authentication etc here.
@@ -43,7 +44,25 @@ def put_multiple_chunks(hash_list, bytes_list):
     Put the given chunks (bytes_list) in the store with their keys = hash_list elements.
     Raise error if unsuccessful.
     '''
-    pass
+    try:
+        for i in range(len(bytes_list)):
+
+            key = hash_list[i]
+
+            value = bytes_list[i]
+
+            # Set the metadata for the object
+            metadata = {
+                'hash': hash_list[i]
+            }
+
+            # Upload the object to S3
+            s3.put_object(Bucket = bucketName, Key = key, Body = value, Metadata = metadata)
+        print('Data uploaded')
+
+    except Exception as e:
+        print(e)
+
 
 def get_multiple_chunks(hash_list):
     '''
@@ -51,7 +70,28 @@ def get_multiple_chunks(hash_list):
     Returns a list of chunk bytes for each of the chunks in hash_list.
     Raise error if unsuccessful.
     '''
-    pass
+    bytes_list = []
+
+    try:
+        for hash in hash_list:
+            key = hash
+
+            response = s3.get_object(Bucket = bucketName, Key = key)
+
+            metadata = response['Metadata']
+
+            hash_obj = metadata['hash']
+
+            if hash_obj == key:
+                value = response['Body'].read()
+                bytes_list.append(value)
+            else:
+                print('Error: Hash not found')
+        
+        return bytes_list
+
+    except Exception as e:
+        print(e)
 
 
 def put_chunk(hash, bytes):
@@ -64,7 +104,7 @@ def put_chunk(hash, bytes):
         # to give public access
         # args = {'ACL' : 'public-read'}
 
-        response = s3.put_object(Bucket = bucketName, Key = file, Body = bytes, Metadata = metadata)
+        response = s3.put_object(Bucket = bucketName, Key = hash, Body = bytes, Metadata = metadata)
         # print(response)
         return True
     except Exception as e:
@@ -74,7 +114,7 @@ def put_chunk(hash, bytes):
 def get_chunk(hash):
 
     try:
-        response = s3.get_object(Bucket = bucketName, Key = file)
+        response = s3.get_object(Bucket = bucketName, Key = hash)
 
         metadata = response['Metadata']
 
@@ -95,24 +135,12 @@ def get_chunk(hash):
 def chunk_exists(hash):
     
     try:
-        response = s3.get_object(Bucket = bucketName, Key = file)
+        response = s3.head_object(Bucket = bucketName, Key = hash)
+        return True
 
-        metadata = response['Metadata']
-
-        hash_obj = metadata['hash']
-
-        if hash_obj == hash:
-            value = response['Body'].read()
-            return True
-        else:
+    except ClientError as e:
+        if e.response['Error']['Code'] == '404':
             return False
+        else:
+            raise
 
-    except Exception as e:
-        print(e)
-
-
-# put_chunk('1234567890abcdef', b'Hello, world!')
-# get_chunk('1234567890abcdef')
-# get_chunk('1234567890')
-# print(chunk_exists('1234567890abcdef'))
-# print(chunk_exists('1234567890abcdef324'))
