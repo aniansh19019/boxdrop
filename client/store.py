@@ -144,3 +144,20 @@ def chunk_exists(hash):
         else:
             raise
 
+'''
+get_chunk(hash)
+
+hash -> str
+
+'0dafd49005f14ba493deff20631bd811' -> b'usbhvqiuvnluvjnqpivvp-=p=op[k3pok3pofjk34jo0-239jo=-02io-30i-0i-23d23d902i309'
+
+
+put_chunk(hash, bytes)
+
+'0dafd49005f14ba493deff20631bd811', b'usbhvqiuvnluvjnqpivvp-=p=op[k3pok3pofjk34jo0-239jo=-02io-30i-0i-23d23d902i309'
+
+get_multiple_chunks(hash_list):
+
+
+hash_list = ['0dafd49005f14ba493deff20631bd811', '0dafd49005f14ba493deff20631bd811', '0dafd49005f14ba493deff20631bd811']
+'''

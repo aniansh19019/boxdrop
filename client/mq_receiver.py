@@ -1,3 +1,82 @@
 '''
 Add code to get the messages about the filesystem changes from the kubernetes hosted rabbitMQ and to apply the changes to the root directory.
 '''
+# TODO: Add authentication on queue
+import pika
+import sys
+import getpass
+import json
+import socket
+import uuid
+import threading
+import os
+from config import Config
+
+# TODO terminate thread
+
+
+class MessageReceiverKernel:
+    def __init__(self, callback) -> None:
+        self.connection = pika.BlockingConnection(pika.ConnectionParameters(host='localhost', heartbeat=30))
+        self.channel = self.connection.channel()
+        self.user_email = "aniansh@yahoo.com"
+        self.channel.exchange_declare(exchange=self.user_email, exchange_type='fanout')
+        self.queue_name = str(getpass.getuser()) + "@" + str(socket.gethostname()) + "-" + str(uuid.UUID(int=uuid.getnode()))
+        if Config.test_mode:
+            # If testing on the same machine, make the queues temporary
+            self.queue_name = ''
+        result = self.channel.queue_declare(queue=self.queue_name, exclusive=Config.test_mode)
+        # added because of test mode
+        self.queue_name = result.method.queue
+        self.channel.queue_bind(queue=self.queue_name, exchange=self.user_email)
+        # see if any other consumption method is more suitable
+        self.channel.basic_consume(queue=result.method.queue, on_message_callback=callback, auto_ack=True)
+
+        pass
+    
+    def start_receiver(self):
+        print("Starting consumption from exchange: {} and queue: {}".format(self.user_email, self.queue_name))
+        self.channel.start_consuming()
+
+
+    def __del__(self):
+        # disable consumption
+        self.connection.close()
+        pass
+
+def callback(ch, method, properties, body):
+    message = json.loads(body)
+    # Ignore message if from the same device
+    compare_string = str(uuid.UUID(int=uuid.getnode()))
+    if Config.test_mode:
+        compare_string += str(os.getpid())
+    if message['from'] == compare_string:
+        return
+    
+    print("Received new message!")
+    print(message)
+
+
+def start_consumption():
+    consumer = MessageReceiverKernel(callback=callback)
+    consumer.start_receiver()
+
+class MessageReceiver:
+    def __init__(self) -> None:
+        self.is_spawned = False
+        pass
+    
+    def spawn_receiver(self):
+        if not self.is_spawned:
+            self.consumer_thread = threading.Thread(target=start_consumption)
+            self.consumer_thread.start()
+            self.is_spawned = True
+            pass
+
+    def __del__(self):
+        if self.is_spawned:
+            self.consumer_thread.join(timeout=10)
+
+
+    
+
