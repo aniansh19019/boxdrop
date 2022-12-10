@@ -113,6 +113,6 @@ def chunk_exists(hash):
 
 # put_chunk('1234567890abcdef', b'Hello, world!')
 # get_chunk('1234567890abcdef')
-get_chunk('1234567890')
+# get_chunk('1234567890')
 # print(chunk_exists('1234567890abcdef'))
 # print(chunk_exists('1234567890abcdef324'))
