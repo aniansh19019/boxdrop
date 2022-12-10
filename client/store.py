@@ -83,8 +83,7 @@ def get_chunk(hash):
         if hash_obj == hash:
             value = response['Body'].read()
             print('Hash found')
-            print('data - ', value)
-            return True
+            return value
         else:
             print('Error: Hash not found')
             return False
