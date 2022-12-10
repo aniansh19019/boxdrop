@@ -1,4 +1,16 @@
+import boto3
 
+# S3 client
+s3 = boto3.client('s3')
+
+bucketName = 'battyfer'
+
+# Creating bucket
+response = s3.create_bucket(Bucket = bucketName)
+## print(response)
+
+# Data file in S3
+file = 'data.txt'
 
 
 # Do all the initialisation, authentication etc here.
@@ -13,8 +25,6 @@ def put_multiple_chunks_concur(hash_list, bytes_list):
     Raise error if unsuccessful.
     '''
 
-
-    pass
 
 def get_multiple_chunks_concur(hash_list):
     '''
@@ -45,28 +55,65 @@ def get_multiple_chunks(hash_list):
 
 
 def put_chunk(hash, bytes):
-    '''
-    Put the given chunk (bytes) in the store with the key = hash.
-    Raise error if unsuccessful.
-    '''
     
-    pass
+    try:
+        metadata = {
+            'hash': hash
+        }
+
+        # to give public access
+        # args = {'ACL' : 'public-read'}
+
+        response = s3.put_object(Bucket = bucketName, Key = file, Body = bytes, Metadata = metadata)
+        # print(response)
+        return True
+    except Exception as e:
+        print(e)
+
 
 def get_chunk(hash):
-    '''
-    Get the chunk bytes from store with key = hash.
-    Return bytes.
-    Raise error if unsuccessful.
-    '''
-    
-    pass
+
+    try:
+        response = s3.get_object(Bucket = bucketName, Key = file)
+
+        metadata = response['Metadata']
+
+        hash_obj = metadata['hash']
+
+        if hash_obj == hash:
+            value = response['Body'].read()
+            print('Hash found')
+            print('data - ', value)
+            return True
+        else:
+            print('Error: Hash not found')
+            return False
+        
+    except Exception as e:
+        print(e)
 
 
 def chunk_exists(hash):
-    '''
-    Checks if a chunk of the given hash exists in the store.
-    Returns True or False.
-    Raise error if unsuccessful.
-    '''
-    pass
+    
+    try:
+        response = s3.get_object(Bucket = bucketName, Key = file)
 
+        metadata = response['Metadata']
+
+        hash_obj = metadata['hash']
+
+        if hash_obj == hash:
+            value = response['Body'].read()
+            return True
+        else:
+            return False
+
+    except Exception as e:
+        print(e)
+
+
+# put_chunk('1234567890abcdef', b'Hello, world!')
+# get_chunk('1234567890abcdef')
+# get_chunk('1234567890')
+# print(chunk_exists('1234567890abcdef'))
+# print(chunk_exists('1234567890abcdef324'))
