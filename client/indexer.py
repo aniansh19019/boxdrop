@@ -2,12 +2,11 @@ from config import Config
 import os
 import shutil
 
-def handle_update_message(message, observer_ref):
+def handle_update_message(message, watcher_ref):
 
     print("Pausing the watcher before applying received updates!")
     # Pause the watcher
-    observer_ref.stop()
-    observer_ref.join()
+    watcher_ref.stop()
 
     src_path = message['src_path']
 
@@ -37,7 +36,7 @@ def handle_update_message(message, observer_ref):
             delete_file(src_path)
         pass
     # resume the watcher
-    observer_ref.start()
+    watcher_ref.start()
     print("Resuming Watcher")
     
 

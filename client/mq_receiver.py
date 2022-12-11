@@ -57,13 +57,15 @@ class MessageReceiverKernel:
 
         print("Received new message! Updating Files...")
         print(message)
-        indexer.handle_update_message(message=message, observer_ref=self.observer_ref)
+        print(self.observer_ref)
+        indexer.handle_update_message(message=message, watcher_ref=self.observer_ref)
 
 
 
 
 def start_consumption(observer_ref):
-    consumer = MessageReceiverKernel(observer_ref==observer_ref)
+    # print(observer_ref)
+    consumer = MessageReceiverKernel(observer_ref=observer_ref)
     consumer.start_receiver()
 
 class MessageReceiver:
@@ -74,7 +76,7 @@ class MessageReceiver:
     
     def spawn_receiver(self):
         if not self.is_spawned:
-            self.consumer_thread = threading.Thread(target=start_consumption, args=self.observer_ref)
+            self.consumer_thread = threading.Thread(target=start_consumption, args=[self.observer_ref])
             self.consumer_thread.start()
             self.is_spawned = True
             pass

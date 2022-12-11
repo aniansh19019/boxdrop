@@ -70,13 +70,13 @@ class Watcher:
         # my_event_handler.on_modified = on_modified
         # my_event_handler.on_moved = on_moved
         self.my_event_handler.on_any_event = on_any_event
-        path = os.path.abspath(root_dir)
-        assert os.path.exists(path)
+        self.path = os.path.abspath(root_dir)
+        assert os.path.exists(self.path)
         self.my_observer = Observer()
-        self.my_observer.schedule(self.my_event_handler, path, recursive=True, )
+        self.my_observer.schedule(self.my_event_handler, self.path, recursive=True, )
         self.my_observer.start()
         # Start the receiver
-        self.receiver = mq_receiver.MessageReceiver(observer_ref=self.my_observer)
+        self.receiver = mq_receiver.MessageReceiver(observer_ref=self)
         self.receiver.spawn_receiver()
         try:
             while True:
@@ -85,15 +85,17 @@ class Watcher:
             self.my_observer.stop()
             self.my_observer.join()
         
-    def pause_watcher(self):
+    def stop(self):
         self.my_observer.stop()
         self.my_observer.join()
 
-    def resume_watcher(self):
+    def start(self):
+        self.my_observer = Observer()
+        self.my_observer.schedule(self.my_event_handler, self.path, recursive=True, )
         self.my_observer.start()
 
     def __del__(self):
-        self.pause_watcher()
+        self.stop()
         pass
     
 
