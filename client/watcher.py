@@ -12,6 +12,7 @@ counter = 0
 
 sender = mq_sender.MessageSender()
 
+
 # TODO: Also notify other devices in the same event handlers
 # TODO: Watch for changes in the cloud
 
@@ -51,34 +52,49 @@ def on_any_event(event):
     
     print(event_message)
     sender.send_directory_update(event_message)
+    
 
-if __name__ == "__main__":
-    root_dir = "../example_sync_dir"
-    if len(sys.argv) > 1:
-        root_dir = sys.argv[1]
+class Watcher:
+    def __init__(self) -> None:
+        root_dir = Config.ROOT_DIR
+        if len(sys.argv) > 1:
+            root_dir = sys.argv[1]
+
+        patterns = ["*"]
+        ignore_patterns = [".DS_Store"]
+        ignore_directories = False
+        case_sensitive = False
+        self.my_event_handler = PatternMatchingEventHandler(patterns, ignore_patterns, ignore_directories, case_sensitive)
+        # my_event_handler.on_created = on_created
+        # my_event_handler.on_deleted = on_deleted
+        # my_event_handler.on_modified = on_modified
+        # my_event_handler.on_moved = on_moved
+        self.my_event_handler.on_any_event = on_any_event
+        path = os.path.abspath(root_dir)
+        assert os.path.exists(path)
+        self.my_observer = Observer()
+        self.my_observer.schedule(self.my_event_handler, path, recursive=True, )
+        self.my_observer.start()
+        # Start the receiver
+        self.receiver = mq_receiver.MessageReceiver(observer_ref=self.my_observer)
+        self.receiver.spawn_receiver()
+        try:
+            while True:
+                time.sleep(1)
+        except KeyboardInterrupt:
+            self.my_observer.stop()
+            self.my_observer.join()
+        
+    def pause_watcher(self):
+        self.my_observer.stop()
+        self.my_observer.join()
+
+    def resume_watcher(self):
+        self.my_observer.start()
+
+    def __del__(self):
+        self.pause_watcher()
+        pass
     
-    patterns = ["*"]
-    ignore_patterns = [".DS_Store"]
-    ignore_directories = False
-    case_sensitive = False
-    my_event_handler = PatternMatchingEventHandler(patterns, ignore_patterns, ignore_directories, case_sensitive)
-    # my_event_handler.on_created = on_created
-    # my_event_handler.on_deleted = on_deleted
-    # my_event_handler.on_modified = on_modified
-    # my_event_handler.on_moved = on_moved
-    my_event_handler.on_any_event = on_any_event
-    path = os.path.abspath(root_dir)
-    assert os.path.exists(path)
-    my_observer = Observer()
-    my_observer.schedule(my_event_handler, path, recursive=True, )
-    my_observer.start()
-    # Start the receiver
-    receiver = mq_receiver.MessageReceiver()
-    receiver.spawn_receiver()
-    try:
-        while True:
-            time.sleep(1)
-    except KeyboardInterrupt:
-        my_observer.stop()
-        my_observer.join()
-    
+
+watcher = Watcher()

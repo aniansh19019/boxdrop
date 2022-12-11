@@ -2,7 +2,13 @@ from config import Config
 import os
 import shutil
 
-def handle_update_message(message):
+def handle_update_message(message, observer_ref):
+
+    print("Pausing the watcher before applying received updates!")
+    # Pause the watcher
+    observer_ref.stop()
+    observer_ref.join()
+
     src_path = message['src_path']
 
     if message['event_type'] == 'created':
@@ -30,6 +36,11 @@ def handle_update_message(message):
         else:
             delete_file(src_path)
         pass
+    # resume the watcher
+    observer_ref.start()
+    print("Resuming Watcher")
+    
+
 
 
 
