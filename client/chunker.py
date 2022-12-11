@@ -17,6 +17,7 @@ import shutil
 # TODO: consider adding a queue of changes
 # TODO: increase chunk count
 # TODO: update file metadata when the file is restored
+# TODO: File not found on moving file
 
 # * set auto commit to False for performance
 # file_db = sqlitedict.SqliteDict("internal_db/file.db", autocommit= True)
@@ -375,7 +376,7 @@ if __name__ == "__main__":
             os.mkdir("internal_db")
             root_id = build_directory_tree_metadata(config.Config.ROOT_DIR)
         elif sys.argv[2] == "rebuild":
-            root_id = 'd6c24d9772cc446982b23c009e09491d'
+            root_id = '9da31e8d66e649598d4e012c8f4727bd'
             # remove all rebuild dirs
             if sys.argv[1] == "1":
                 shutil.rmtree("client_one")

@@ -43,7 +43,6 @@ def on_moved(event):
 # TODO: send messages after the metadata is updated, use blocking functions
 
 # ! Problems with pausing the watcher
-# ? Can you destroy and create the watcher to fix the hacky time fix?
 class Watcher:
     def __init__(self) -> None:
         self.is_paused = False
