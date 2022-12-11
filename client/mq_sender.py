@@ -7,6 +7,7 @@ import json
 import uuid
 from config import Config
 import os
+import auth
 
 # TODO error handling
 
@@ -15,7 +16,7 @@ class MessageSender:
         self.connection = pika.BlockingConnection(pika.ConnectionParameters(host=Config.RABBIT_MQ_IP, heartbeat=30))
         self.channel = self.connection.channel()
         # TODO: Get user email
-        self.user_email = "aniansh@yahoo.com"
+        self.user_email = auth.user_email() or "aniansh@yahoo.com"
         self.channel.exchange_declare(exchange=self.user_email, exchange_type='fanout')
     
     def send_directory_update(self, message):

@@ -359,7 +359,7 @@ def build_file_from_chunks(chunk_hashes, file_path):
 
 if __name__ == "__main__":
 
-    # root_id = build_directory_tree_metadata("../example_sync_dir")
+    root_id = build_directory_tree_metadata("../example_sync_dir")
     root_id = '0dafd49005f14ba493deff20631bd811'
     print(root_id)
 

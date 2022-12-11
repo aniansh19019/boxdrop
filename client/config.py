@@ -1,5 +1,6 @@
 class Config:
     test_mode = True
+    # TODO: make the root dir before accessing
     # ROOT_DIR = "~/BoxDrop"
     ROOT_DIR = "../example_sync_dir"
     RABBIT_MQ_IP = "34.224.214.95"
