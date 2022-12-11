@@ -10,7 +10,7 @@ import socket
 import uuid
 import threading
 import os
-from config import Config
+import config
 import indexer
 
 # TODO terminate thread
@@ -19,15 +19,15 @@ import indexer
 class MessageReceiverKernel:
     def __init__(self, observer_ref) -> None:
         self.observer_ref = observer_ref
-        self.connection = pika.BlockingConnection(pika.ConnectionParameters(host=Config.RABBIT_MQ_IP, heartbeat=30))
+        self.connection = pika.BlockingConnection(pika.ConnectionParameters(host=config.Config.RABBIT_MQ_IP, heartbeat=30))
         self.channel = self.connection.channel()
         self.user_email = "aniansh@yahoo.com"
         self.channel.exchange_declare(exchange=self.user_email, exchange_type='fanout')
         self.queue_name = str(getpass.getuser()) + "@" + str(socket.gethostname()) + "-" + str(uuid.UUID(int=uuid.getnode()))
-        if Config.test_mode:
+        if config.Config.test_mode:
             # If testing on the same machine, make the queues temporary
             self.queue_name = ''
-        result = self.channel.queue_declare(queue=self.queue_name, exclusive=Config.test_mode)
+        result = self.channel.queue_declare(queue=self.queue_name, exclusive=config.Config.test_mode)
         # added because of test mode
         self.queue_name = result.method.queue
         self.channel.queue_bind(queue=self.queue_name, exchange=self.user_email)
@@ -50,7 +50,7 @@ class MessageReceiverKernel:
         message = json.loads(body)
         # Ignore message if from the same device
         compare_string = str(uuid.UUID(int=uuid.getnode()))
-        if Config.test_mode:
+        if config.Config.test_mode:
             compare_string += str(os.getpid())
         if message['from'] == compare_string:
             return

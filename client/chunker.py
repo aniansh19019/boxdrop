@@ -7,9 +7,10 @@ import queue
 import datetime
 import store
 import metadata_db
-from config import Config
+import config
 import watcher
 import sys
+import shutil
 
 # TODO: add chunks database to keep track of the use count of each chunk
 # TODO: add the option to restore deleted files
@@ -28,14 +29,14 @@ def get_hashes(chunks):
     return retval
 
 def get_chunks(filename):
-    return list(fastcdc(filename, Config.MIN_CHUNK_SIZE, Config.MAX_CHUNK_SIZE, Config.MAX_CHUNK_SIZE, True, hashlib.sha256))
+    return list(fastcdc(filename, config.Config.MIN_CHUNK_SIZE, config.Config.MAX_CHUNK_SIZE, config.Config.MAX_CHUNK_SIZE, True, hashlib.sha256))
 
 
 def chunk_and_upload_file(filepath):
 
     file = os.path.basename(filepath)
     # Check if file is to be skipped
-    if file in Config.SKIP_FILES:
+    if file in config.Config.SKIP_FILES:
         print("Skipping {}".format(filepath))
         return
     print("Uploading chunks for {}".format(file))
@@ -58,7 +59,7 @@ def chunk_and_upload_file(filepath):
     print()
     # chunk_db.commit()
     print("Chunks Uploaded!")
-    rel_path = os.path.relpath(filepath, Config.ROOT_DIR)
+    rel_path = os.path.relpath(filepath, config.Config.ROOT_DIR)
     # Add entry for file
     db_data = {
     "id": uuid.uuid4().hex,
@@ -83,7 +84,7 @@ def chunk_and_upload_file(filepath):
 
 def create_directory_record(dir_path):
     dir_path = os.path.abspath(dir_path)
-    rel_path = os.path.relpath(dir_path, Config.ROOT_DIR)
+    rel_path = os.path.relpath(dir_path, config.Config.ROOT_DIR)
     # Add entry for directory
     db_data = {
             "id": uuid.uuid4().hex,
@@ -113,7 +114,7 @@ def build_directory_tree_metadata(sync_dir):
     for (root, dirs, files ) in os.walk(abs_path, topdown=False):
         # Check if the directory is to be skipped
         rel_path = os.path.relpath(root, abs_path)
-        if rel_path in Config.SKIP_FILES:
+        if rel_path in config.Config.SKIP_FILES:
             print("Skipping {}".format(root))
             continue
 
@@ -181,7 +182,7 @@ def restore_directory_tree(parent_dir, root_id):
 
 
 def create_file_metadata(file_path):
-    # rel_path = os.path.relpath(file_path, Config.ROOT_DIR)
+    # rel_path = os.path.relpath(file_path, config.Config.ROOT_DIR)
 
     if os.path.isdir(file_path):
         # Create directory record
@@ -201,7 +202,7 @@ def create_file_metadata(file_path):
 def delete_file_metadata(file_path):
     # Update the given file's metadata
 
-    rel_path = os.path.relpath(file_path, Config.ROOT_DIR)
+    rel_path = os.path.relpath(file_path, config.Config.ROOT_DIR)
     file_record = metadata_db.get_file_record_from_path(rel_path)
 
     file_record['is_deleted'] = True
@@ -221,7 +222,7 @@ def update_file_metadata(file_path):
 
     # Update the given file's metadata
 
-    rel_path = os.path.relpath(file_path, Config.ROOT_DIR)
+    rel_path = os.path.relpath(file_path, config.Config.ROOT_DIR)
     file_record = metadata_db.get_file_record_from_path(rel_path)
 
     if os.path.isfile(file_path):
@@ -272,7 +273,7 @@ def repopulate_parent_directory(dir_path):
 
     # Update the given directory's children field
 
-    rel_path = os.path.relpath(dir_path, Config.ROOT_DIR)
+    rel_path = os.path.relpath(dir_path, config.Config.ROOT_DIR)
 
     dir_record = metadata_db.get_file_record_from_path(rel_path)
 
@@ -285,10 +286,10 @@ def repopulate_parent_directory(dir_path):
 
     # * add new items to the children
     for item in real_contents:
-        if item in Config.SKIP_FILES:
+        if item in config.Config.SKIP_FILES:
             continue
         item_path = os.path.join(dir_path, item)
-        item_rel_path = os.path.relpath(item_path, Config.ROOT_DIR)
+        item_rel_path = os.path.relpath(item_path, config.Config.ROOT_DIR)
         item_id = metadata_db.get_file_record_from_path(item_rel_path)['id']
         print(dir_record)
         # add only if the item does not already exist
@@ -324,8 +325,8 @@ def repopulate_parent_directory(dir_path):
 def move_file_metadata(src, dst):
     # Update the given file's metadata
 
-    src_rel_path = os.path.relpath(src, Config.ROOT_DIR)
-    dst_rel_path = os.path.relpath(dst, Config.ROOT_DIR)
+    src_rel_path = os.path.relpath(src, config.Config.ROOT_DIR)
+    dst_rel_path = os.path.relpath(dst, config.Config.ROOT_DIR)
     src_record = metadata_db.get_file_record_from_path(src_rel_path)
 
     src_record['path'] = dst_rel_path
@@ -360,17 +361,42 @@ def build_file_from_chunks(chunk_hashes, file_path):
 
 
 if __name__ == "__main__":
+    
+    root_id = ""
+    if len(sys.argv) == 3:
+        if sys.argv[1] == "1":
+            config.Config.ROOT_DIR = "client_one"
+        elif sys.argv[1] == "2":
+            config.Config.ROOT_DIR = "client_two"
+        if sys.argv[2] == "scan":
+            config.Config.ROOT_DIR = "../example_sync_dir"
+            # remove all internal db
+            shutil.rmtree("internal_db")
+            os.mkdir("internal_db")
+            root_id = build_directory_tree_metadata(config.Config.ROOT_DIR)
+        elif sys.argv[2] == "rebuild":
+            root_id = '6256d3e03211490db476d9e240eb3e73'
+            # remove all rebuild dirs
+            shutil.rmtree("client_one")
+            shutil.rmtree("client_two")
+            os.mkdir("client_one")
+            os.mkdir("client_two")
+
+            restore_directory_tree(config.Config.ROOT_DIR, root_id)
+        elif sys.argv[2] == "watch":
+            watcher.Watcher()
+
 
     
 
     # root_id = build_directory_tree_metadata("../example_sync_dir")
-    root_id = '6256d3e03211490db476d9e240eb3e73'
+    # root_id = '6256d3e03211490db476d9e240eb3e73'
     print(root_id)
 
-    # restore_directory_tree(Config.ROOT_DIR, root_id)
+    # restore_directory_tree(config.Config.ROOT_DIR, root_id)
     # update_file_metadata('')
     # start the watcher
-    watcher.Watcher()
+    # watcher.Watcher()
     pass
 
 

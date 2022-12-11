@@ -1,4 +1,4 @@
-from config import Config
+import config
 import os
 import shutil
 import chunker
@@ -47,7 +47,7 @@ def handle_update_message(message, watcher_ref):
 
 # ! updates might be slow
 def create_file(rel_path):
-    abs_path = os.path.join(Config.ROOT_DIR, rel_path)
+    abs_path = os.path.join(config.Config.ROOT_DIR, rel_path)
     file_record = metadata_db.get_file_record_from_path(rel_path)
     hash_str = file_record['chunks'][-1]
     hashes = str(hash_str).splitlines()
@@ -57,7 +57,7 @@ def create_file(rel_path):
 
 # ! updates might be slow
 def create_dir(rel_path):
-    abs_path = os.path.join(Config.ROOT_DIR, rel_path)
+    abs_path = os.path.join(config.Config.ROOT_DIR, rel_path)
     # make directory
     os.makedirs(abs_path, exist_ok=True)
     print("Directory {} created successfully!".format(abs_path))
@@ -65,7 +65,7 @@ def create_dir(rel_path):
 
 # ! updates might be slow
 def modify_file(rel_path):
-    abs_path = os.path.join(Config.ROOT_DIR, rel_path)
+    abs_path = os.path.join(config.Config.ROOT_DIR, rel_path)
     old_chunks = chunker.get_chunks(abs_path)
     chunk_map = {}
     for chunk in old_chunks:
@@ -105,8 +105,8 @@ def modify_dir(rel_path):
 
 
 def move_file(rel_src, rel_dest):
-    abs_src = os.path.join(Config.ROOT_DIR, rel_src)
-    abs_dest = os.path.join(Config.ROOT_DIR, rel_dest)
+    abs_src = os.path.join(config.Config.ROOT_DIR, rel_src)
+    abs_dest = os.path.join(config.Config.ROOT_DIR, rel_dest)
     # move file
     shutil.move(abs_src, abs_dest)
     print("Moved file {} to {}".format(rel_src, rel_dest))
@@ -114,8 +114,8 @@ def move_file(rel_src, rel_dest):
     pass
 
 def move_dir(rel_src, rel_dest):
-    abs_src = os.path.join(Config.ROOT_DIR, rel_src)
-    abs_dest = os.path.join(Config.ROOT_DIR, rel_dest)
+    abs_src = os.path.join(config.Config.ROOT_DIR, rel_src)
+    abs_dest = os.path.join(config.Config.ROOT_DIR, rel_dest)
     # move directory
     shutil.move(abs_src, abs_dest)
     print("Moved directory {} to {}".format(rel_src, rel_dest))
@@ -123,7 +123,7 @@ def move_dir(rel_src, rel_dest):
 
 
 def delete_file(rel_path):
-    abs_path = os.path.join(Config.ROOT_DIR, rel_path)
+    abs_path = os.path.join(config.Config.ROOT_DIR, rel_path)
     # delete the file
     if os.path.exists(abs_path):
         os.remove(abs_path)
@@ -135,7 +135,7 @@ def delete_file(rel_path):
     pass
 
 def delete_dir(rel_path):
-    abs_path = os.path.join(Config.ROOT_DIR, rel_path)
+    abs_path = os.path.join(config.Config.ROOT_DIR, rel_path)
 
     # delete the folder with all the contents
     shutil.rmtree(abs_path, ignore_errors=True)

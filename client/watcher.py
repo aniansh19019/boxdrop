@@ -6,7 +6,7 @@ import chunker
 import mq_sender
 import mq_receiver
 import sys
-from config import Config
+import config
 
 counter = 0
 
@@ -64,12 +64,12 @@ def on_any_event(event):
     # Send messages only after the updates have happened in the metadata_db and s3
     event_message = {
         'event_type': event.event_type,
-        'src_path': os.path.relpath(event.src_path, Config.ROOT_DIR),
+        'src_path': os.path.relpath(event.src_path, config.Config.ROOT_DIR),
         'is_dir': event.is_directory
     }
 
     if event.event_type == 'moved':
-        event_message['dest_path'] = os.path.relpath(event.dest_path, Config.ROOT_DIR)
+        event_message['dest_path'] = os.path.relpath(event.dest_path, config.Config.ROOT_DIR)
     
     print(event_message)
     sender.send_directory_update(event_message)
@@ -77,7 +77,7 @@ def on_any_event(event):
 
 class Watcher:
     def __init__(self) -> None:
-        root_dir = Config.ROOT_DIR
+        root_dir = config.Config.ROOT_DIR
         if len(sys.argv) > 1:
             root_dir = sys.argv[1]
 
