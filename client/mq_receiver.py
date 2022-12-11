@@ -11,6 +11,7 @@ import uuid
 import threading
 import os
 from config import Config
+import indexer
 
 # TODO terminate thread
 
@@ -53,8 +54,11 @@ def callback(ch, method, properties, body):
     if message['from'] == compare_string:
         return
     
-    print("Received new message!")
+    print("Received new message! Updating Files...")
     print(message)
+    indexer.handle_update_message(message=message)
+
+
 
 
 def start_consumption():
