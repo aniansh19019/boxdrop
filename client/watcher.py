@@ -54,10 +54,14 @@ def on_any_event(event):
         on_moved(event)
         pass
     if event.event_type == 'deleted':
-        on_moved(event)
+        on_deleted(event)
         pass
 
-    # Send messages only after the updates have happened in the metadata_db
+    # ! Hacky FIX, adding a time delay
+
+    time.sleep(5)
+
+    # Send messages only after the updates have happened in the metadata_db and s3
     event_message = {
         'event_type': event.event_type,
         'src_path': os.path.relpath(event.src_path, Config.ROOT_DIR),
@@ -116,4 +120,4 @@ class Watcher:
         pass
     
 
-watcher = Watcher()
+# watcher = Watcher()

@@ -8,7 +8,8 @@ import datetime
 import store
 import metadata_db
 from config import Config
-
+import watcher
+import sys
 
 # TODO: add chunks database to keep track of the use count of each chunk
 # TODO: add the option to restore deleted files
@@ -117,11 +118,9 @@ def build_directory_tree_metadata(sync_dir):
             continue
 
         print("Root: {}".format(root))
-        root_children = []
         for file in files:
             filepath = os.path.join(root, file)
-            file_id = chunk_and_upload_file(filepath)
-            root_children.append(file_id)
+            chunk_and_upload_file(filepath)
 
 
         # Add root directory to db
@@ -268,7 +267,7 @@ def update_file_metadata(file_path):
     pass
 
 
-def repopulate_parent_directory(dir_path, dir_record):
+def repopulate_parent_directory(dir_path):
     assert os.path.isdir(dir_path)
 
     # Update the given directory's children field
@@ -290,7 +289,7 @@ def repopulate_parent_directory(dir_path, dir_record):
             continue
         item_path = os.path.join(dir_path, item)
         item_rel_path = os.path.relpath(item_path, Config.ROOT_DIR)
-        item_id = metadata_db.get_file_record_from_path(item_rel_path)
+        item_id = metadata_db.get_file_record_from_path(item_rel_path)['id']
         print(dir_record)
         # add only if the item does not already exist
         # check if children exist at all
@@ -334,6 +333,9 @@ def move_file_metadata(src, dst):
     # update the modified time
     src_record['date_modified'] = os.path.getmtime(dst)
 
+    print(f"src_record: {src_record}")
+
+
     # update the metadata db
     metadata_db.update_file_record(src_record)
 
@@ -359,12 +361,16 @@ def build_file_from_chunks(chunk_hashes, file_path):
 
 if __name__ == "__main__":
 
-    root_id = build_directory_tree_metadata("../example_sync_dir")
-    root_id = '0dafd49005f14ba493deff20631bd811'
+    
+
+    # root_id = build_directory_tree_metadata("../example_sync_dir")
+    root_id = '6256d3e03211490db476d9e240eb3e73'
     print(root_id)
 
-    restore_directory_tree("rebuilt_dir", root_id)
+    # restore_directory_tree(Config.ROOT_DIR, root_id)
     # update_file_metadata('')
+    # start the watcher
+    watcher.Watcher()
     pass
 
 

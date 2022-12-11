@@ -49,7 +49,7 @@ def handle_update_message(message, watcher_ref):
 def create_file(rel_path):
     abs_path = os.path.join(Config.ROOT_DIR, rel_path)
     file_record = metadata_db.get_file_record_from_path(rel_path)
-    hash_str = file_record['chunks']
+    hash_str = file_record['chunks'][-1]
     hashes = str(hash_str).splitlines()
     chunker.build_file_from_chunks(hashes, abs_path)
     print("New File {} created successfully!".format(rel_path))
@@ -75,11 +75,14 @@ def modify_file(rel_path):
 
     # get new file metadata
     new_file_record = metadata_db.get_file_record_from_path(rel_path)
-    new_hash_str = new_file_record['chunks']
+    new_hash_str = new_file_record['chunks'][-1]
     new_hashes = str(new_hash_str).splitlines()
     for hash in new_hashes:
         if hash not in chunk_map.keys():
-            chunk_map[hash] = store.get_chunk(hash)
+            if store.chunk_exists(hash):
+                chunk_map[hash] = store.get_chunk(hash)
+            else:
+                print("Chunk {} not found!".format(hash))
     
     # remove old file
     os.remove(abs_path)
@@ -133,7 +136,7 @@ def delete_file(rel_path):
 
 def delete_dir(rel_path):
     abs_path = os.path.join(Config.ROOT_DIR, rel_path)
-    
+
     # delete the folder with all the contents
     shutil.rmtree(abs_path, ignore_errors=True)
     print("Removed file {}".format(rel_path))

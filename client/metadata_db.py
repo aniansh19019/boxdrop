@@ -78,6 +78,7 @@ def get_user_record_from_email(email):
     Raise error if unsuccessful.
     '''
     user_db= get_user_db()
+    user_record = {}
     for key in user_db:
         if user_db[key]['email'] == email:
             user_record = user_db[key]
@@ -98,6 +99,7 @@ def get_file_record_from_path(file_path):
     Raise error if unsuccessful.
     '''
     file_db = get_file_db()
+    file_record = {}
     for key in file_db:
         if file_db[key]['path'] == file_path:
             file_record = file_db[key]
@@ -116,6 +118,7 @@ def get_file_record_from_id(file_id):
     Raise error if unsuccessful.
     '''
     file_db = get_file_db()
+    print(f"file id: {file_id}")
     file_record = file_db[file_id]
     
     # close the db
@@ -218,5 +221,5 @@ def delete_chunk_record(chunk_hash):
 
     # close the db
     chunk_db.close()
-    
+
     pass
