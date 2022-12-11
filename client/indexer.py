@@ -4,6 +4,7 @@ import shutil
 import chunker
 import metadata_db
 import store
+import time
 
 def handle_update_message(message, watcher_ref):
 
@@ -39,6 +40,9 @@ def handle_update_message(message, watcher_ref):
             delete_file(src_path)
         pass
     # resume the watcher
+    # ! Hacky timer fix
+    time.sleep(3)
+
     watcher_ref.start()
     print("Resuming Watcher")
     

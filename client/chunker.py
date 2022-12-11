@@ -291,7 +291,7 @@ def repopulate_parent_directory(dir_path):
         item_path = os.path.join(dir_path, item)
         item_rel_path = os.path.relpath(item_path, config.Config.ROOT_DIR)
         item_id = metadata_db.get_file_record_from_path(item_rel_path)['id']
-        print(dir_record)
+        # print(dir_record)
         # add only if the item does not already exist
         # check if children exist at all
         if item_id not in dir_record['children']:
@@ -334,7 +334,7 @@ def move_file_metadata(src, dst):
     # update the modified time
     src_record['date_modified'] = os.path.getmtime(dst)
 
-    print(f"src_record: {src_record}")
+    # print(f"src_record: {src_record}")
 
 
     # update the metadata db
@@ -375,13 +375,14 @@ if __name__ == "__main__":
             os.mkdir("internal_db")
             root_id = build_directory_tree_metadata(config.Config.ROOT_DIR)
         elif sys.argv[2] == "rebuild":
-            root_id = '6256d3e03211490db476d9e240eb3e73'
+            root_id = 'd6c24d9772cc446982b23c009e09491d'
             # remove all rebuild dirs
-            shutil.rmtree("client_one")
-            shutil.rmtree("client_two")
-            os.mkdir("client_one")
-            os.mkdir("client_two")
-
+            if sys.argv[1] == "1":
+                shutil.rmtree("client_one")
+                os.mkdir("client_one")
+            elif sys.argv[1] == "2":
+                shutil.rmtree("client_two")
+                os.mkdir("client_two")
             restore_directory_tree(config.Config.ROOT_DIR, root_id)
         elif sys.argv[2] == "watch":
             watcher.Watcher()
@@ -390,7 +391,7 @@ if __name__ == "__main__":
     
 
     # root_id = build_directory_tree_metadata("../example_sync_dir")
-    # root_id = '6256d3e03211490db476d9e240eb3e73'
+    # root_id = '44b7b573abd940cd8b55dee77432bd7d'
     print(root_id)
 
     # restore_directory_tree(config.Config.ROOT_DIR, root_id)

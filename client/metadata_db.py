@@ -79,7 +79,7 @@ def get_user_record_from_email(email):
     '''
     user_db= get_user_db()
     user_record = {}
-    for key in user_db:
+    for key in user_db.keys():
         if user_db[key]['email'] == email:
             user_record = user_db[key]
             break
@@ -99,17 +99,13 @@ def get_file_record_from_path(file_path):
     Raise error if unsuccessful.
     '''
     file_db = get_file_db()
-    file_record = {}
-    for key in file_db:
+    for key in file_db.keys():
         if file_db[key]['path'] == file_path:
             file_record = file_db[key]
-            break
-    
-    # close the db
-    file_db.close()
+            file_db.close()
+            return file_record
 
-    return file_record
-    pass
+    raise FileNotFoundError()
 
 def get_file_record_from_id(file_id):
     '''
@@ -118,7 +114,7 @@ def get_file_record_from_id(file_id):
     Raise error if unsuccessful.
     '''
     file_db = get_file_db()
-    print(f"file id: {file_id}")
+    # print(f"file id: {file_id}")
     file_record = file_db[file_id]
     
     # close the db

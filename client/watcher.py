@@ -41,48 +41,15 @@ def on_moved(event):
 
 #! Order not guaranteed!
 # TODO: send messages after the metadata is updated, use blocking functions
-def on_any_event(event):
-    # call event handlers manually to preserve order
 
-    if event.event_type == 'created':
-        on_created(event)
-        pass
-    if event.event_type == 'modified':
-        on_modified(event)
-        pass
-    if event.event_type == 'moved':
-        on_moved(event)
-        pass
-    if event.event_type == 'deleted':
-        on_deleted(event)
-        pass
-
-    # ! Hacky FIX, adding a time delay
-
-    time.sleep(5)
-
-    # Send messages only after the updates have happened in the metadata_db and s3
-    event_message = {
-        'event_type': event.event_type,
-        'src_path': os.path.relpath(event.src_path, config.Config.ROOT_DIR),
-        'is_dir': event.is_directory
-    }
-
-    if event.event_type == 'moved':
-        event_message['dest_path'] = os.path.relpath(event.dest_path, config.Config.ROOT_DIR)
-    
-    print(event_message)
-    sender.send_directory_update(event_message)
-    
-
+# ! Problems with pausing the watcher
+# ? Can you destroy and create the watcher to fix the hacky time fix?
 class Watcher:
     def __init__(self) -> None:
+        self.is_paused = False
         root_dir = config.Config.ROOT_DIR
-        if len(sys.argv) > 1:
-            root_dir = sys.argv[1]
-
         patterns = ["*"]
-        ignore_patterns = [".DS_Store"]
+        ignore_patterns = config.Config.SKIP_FILES
         ignore_directories = False
         case_sensitive = False
         self.my_event_handler = PatternMatchingEventHandler(patterns, ignore_patterns, ignore_directories, case_sensitive)
@@ -90,11 +57,11 @@ class Watcher:
         # my_event_handler.on_deleted = on_deleted
         # my_event_handler.on_modified = on_modified
         # my_event_handler.on_moved = on_moved
-        self.my_event_handler.on_any_event = on_any_event
+        self.my_event_handler.on_any_event = self.on_any_event
         self.path = os.path.abspath(root_dir)
         assert os.path.exists(self.path)
         self.my_observer = Observer()
-        self.my_observer.schedule(self.my_event_handler, self.path, recursive=True, )
+        self.watch = self.my_observer.schedule(self.my_event_handler, self.path, recursive=True, )
         self.my_observer.start()
         # Start the receiver
         self.receiver = mq_receiver.MessageReceiver(observer_ref=self)
@@ -107,17 +74,52 @@ class Watcher:
             self.my_observer.join()
         
     def stop(self):
-        self.my_observer.stop()
-        self.my_observer.join()
+        self.is_paused = True
 
     def start(self):
-        self.my_observer = Observer()
-        self.my_observer.schedule(self.my_event_handler, self.path, recursive=True, )
-        self.my_observer.start()
+        self.is_paused = False
 
     def __del__(self):
-        self.stop()
+        self.my_observer.stop()
+        self.my_observer.join()
         pass
     
+    def on_any_event(self, event):
+
+        # if paused, ignore all changes
+        if self.is_paused:
+            print("Watcher Off....")
+            return
+        # call event handlers manually to preserve order
+
+        if event.event_type == 'created':
+            on_created(event)
+            pass
+        if event.event_type == 'modified':
+            on_modified(event)
+            pass
+        if event.event_type == 'moved':
+            on_moved(event)
+            pass
+        if event.event_type == 'deleted':
+            on_deleted(event)
+            pass
+
+        # ! Hacky FIX, adding a time delay
+
+        # time.sleep(2)
+
+        # Send messages only after the updates have happened in the metadata_db and s3
+        event_message = {
+            'event_type': event.event_type,
+            'src_path': os.path.relpath(event.src_path, config.Config.ROOT_DIR),
+            'is_dir': event.is_directory
+        }
+
+        if event.event_type == 'moved':
+            event_message['dest_path'] = os.path.relpath(event.dest_path, config.Config.ROOT_DIR)
+
+        print(event_message)
+        sender.send_directory_update(event_message)
 
 # watcher = Watcher()
