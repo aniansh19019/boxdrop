@@ -13,7 +13,7 @@ import auth
 
 class MessageSender:
     def __init__(self) -> None:
-        self.connection = pika.BlockingConnection(pika.ConnectionParameters(host=config.Config.RABBIT_MQ_IP, heartbeat=30))
+        self.connection = pika.BlockingConnection(pika.ConnectionParameters(host=config.Config.RABBIT_MQ_IP))
         self.channel = self.connection.channel()
         # TODO: Get user email
         self.user_email = auth.user_email() or "aniansh@yahoo.com"
