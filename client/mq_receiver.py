@@ -19,7 +19,7 @@ import indexer
 class MessageReceiverKernel:
     def __init__(self, observer_ref) -> None:
         self.observer_ref = observer_ref
-        self.connection = pika.BlockingConnection(pika.ConnectionParameters(host='localhost', heartbeat=30))
+        self.connection = pika.BlockingConnection(pika.ConnectionParameters(host=Config.RABBIT_MQ_IP, heartbeat=30))
         self.channel = self.connection.channel()
         self.user_email = "aniansh@yahoo.com"
         self.channel.exchange_declare(exchange=self.user_email, exchange_type='fanout')

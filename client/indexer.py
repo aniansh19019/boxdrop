@@ -1,6 +1,9 @@
 from config import Config
 import os
 import shutil
+import chunker
+import metadata_db
+import store
 
 def handle_update_message(message, watcher_ref):
 
@@ -42,15 +45,56 @@ def handle_update_message(message, watcher_ref):
 
 
 
-
+# ! updates might be slow
 def create_file(rel_path):
+    abs_path = os.path.join(Config.ROOT_DIR, rel_path)
+    file_record = metadata_db.get_file_record_from_path(rel_path)
+    hash_str = file_record['chunks']
+    hashes = str(hash_str).splitlines()
+    chunker.build_file_from_chunks(hashes, abs_path)
+    print("New File {} created successfully!".format(rel_path))
     pass
 
+# ! updates might be slow
 def create_dir(rel_path):
+    abs_path = os.path.join(Config.ROOT_DIR, rel_path)
+    # make directory
+    os.makedirs(abs_path, exist_ok=True)
+    print("Directory {} created successfully!".format(abs_path))
     pass
 
-
+# ! updates might be slow
 def modify_file(rel_path):
+    abs_path = os.path.join(Config.ROOT_DIR, rel_path)
+    old_chunks = chunker.get_chunks(abs_path)
+    chunk_map = {}
+    for chunk in old_chunks:
+        chunk_map[chunk.hash] = chunk.data
+    old_hash_str = chunker.get_hashes(old_chunks)
+
+
+    # get new file metadata
+    new_file_record = metadata_db.get_file_record_from_path(rel_path)
+    new_hash_str = new_file_record['chunks']
+    new_hashes = str(new_hash_str).splitlines()
+    for hash in new_hashes:
+        if hash not in chunk_map.keys():
+            chunk_map[hash] = store.get_chunk(hash)
+    
+    # remove old file
+    os.remove(abs_path)
+
+    # write the new file
+    with open(abs_path, "ab") as out_ref:
+        total_hashes = len(new_hashes)
+        current_hash = 1
+        for hash in new_hashes:
+            print("\rRetrieving Chunk {} of {}".format(current_hash, total_hashes), end="")
+            out_ref.write(chunk_map[hash])
+            current_hash += 1
+        print()
+    print("File {} modified sucessfully!".format(rel_path))
+    
     pass
 
 def modify_dir(rel_path):
@@ -58,18 +102,25 @@ def modify_dir(rel_path):
 
 
 def move_file(rel_src, rel_dest):
+    abs_src = os.path.join(Config.ROOT_DIR, rel_src)
+    abs_dest = os.path.join(Config.ROOT_DIR, rel_dest)
+    # move file
+    shutil.move(abs_src, abs_dest)
+    print("Moved file {} to {}".format(rel_src, rel_dest))
+
     pass
 
 def move_dir(rel_src, rel_dest):
+    abs_src = os.path.join(Config.ROOT_DIR, rel_src)
+    abs_dest = os.path.join(Config.ROOT_DIR, rel_dest)
+    # move directory
+    shutil.move(abs_src, abs_dest)
+    print("Moved directory {} to {}".format(rel_src, rel_dest))
     pass
 
 
 def delete_file(rel_path):
     abs_path = os.path.join(Config.ROOT_DIR, rel_path)
-    
-    # Update internal db record
-    # TODO
-
     # delete the file
     if os.path.exists(abs_path):
         os.remove(abs_path)
@@ -83,11 +134,7 @@ def delete_file(rel_path):
 def delete_dir(rel_path):
     abs_path = os.path.join(Config.ROOT_DIR, rel_path)
     
-    # Update internal db record
-    # TODO
-
     # delete the folder with all the contents
-    
     shutil.rmtree(abs_path, ignore_errors=True)
     print("Removed file {}".format(rel_path))
 

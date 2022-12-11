@@ -10,13 +10,6 @@ import metadata_db
 from config import Config
 
 
-random.randrange(0, 1000000000000)
-
-MAX_CHUNK_SIZE = 4096 # Max chunk size in bytes
-MIN_CHUNK_SIZE = 256 # Minimum chunk size in bytes
-CACHE_SIZE = 1024 # Number of chunks to store in the offline cache
-SKIP_FILES = ['.DS_Store', '__pycache__']
-
 # TODO: add chunks database to keep track of the use count of each chunk
 # TODO: add the option to restore deleted files
 # TODO: consider adding a queue of changes
@@ -34,14 +27,14 @@ def get_hashes(chunks):
     return retval
 
 def get_chunks(filename):
-    return list(fastcdc(filename, MIN_CHUNK_SIZE, MAX_CHUNK_SIZE, MAX_CHUNK_SIZE, True, hashlib.sha256))
+    return list(fastcdc(filename, Config.MIN_CHUNK_SIZE, Config.MAX_CHUNK_SIZE, Config.MAX_CHUNK_SIZE, True, hashlib.sha256))
 
 
 def chunk_and_upload_file(filepath):
 
     file = os.path.basename(filepath)
     # Check if file is to be skipped
-    if file in SKIP_FILES:
+    if file in Config.SKIP_FILES:
         print("Skipping {}".format(filepath))
         return
     print("Uploading chunks for {}".format(file))
@@ -119,7 +112,7 @@ def build_directory_tree_metadata(sync_dir):
     for (root, dirs, files ) in os.walk(abs_path, topdown=False):
         # Check if the directory is to be skipped
         rel_path = os.path.relpath(root, abs_path)
-        if rel_path in SKIP_FILES:
+        if rel_path in Config.SKIP_FILES:
             print("Skipping {}".format(root))
             continue
 
@@ -293,7 +286,7 @@ def repopulate_parent_directory(dir_path, dir_record):
 
     # * add new items to the children
     for item in real_contents:
-        if item in SKIP_FILES:
+        if item in Config.SKIP_FILES:
             continue
         item_path = os.path.join(dir_path, item)
         item_rel_path = os.path.relpath(item_path, Config.ROOT_DIR)

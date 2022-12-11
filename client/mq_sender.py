@@ -12,7 +12,7 @@ import os
 
 class MessageSender:
     def __init__(self) -> None:
-        self.connection = pika.BlockingConnection(pika.ConnectionParameters(host='localhost', heartbeat=30))
+        self.connection = pika.BlockingConnection(pika.ConnectionParameters(host=Config.RABBIT_MQ_IP, heartbeat=30))
         self.channel = self.connection.channel()
         # TODO: Get user email
         self.user_email = "aniansh@yahoo.com"

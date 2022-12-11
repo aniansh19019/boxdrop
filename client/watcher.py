@@ -40,7 +40,24 @@ def on_moved(event):
 
 
 #! Order not guaranteed!
+# TODO: send messages after the metadata is updated, use blocking functions
 def on_any_event(event):
+    # call event handlers manually to preserve order
+
+    if event.event_type == 'created':
+        on_created(event)
+        pass
+    if event.event_type == 'modified':
+        on_modified(event)
+        pass
+    if event.event_type == 'moved':
+        on_moved(event)
+        pass
+    if event.event_type == 'deleted':
+        on_moved(event)
+        pass
+
+    # Send messages only after the updates have happened in the metadata_db
     event_message = {
         'event_type': event.event_type,
         'src_path': os.path.relpath(event.src_path, Config.ROOT_DIR),
