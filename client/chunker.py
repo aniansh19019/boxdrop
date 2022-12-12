@@ -19,6 +19,7 @@ import auth
 # TODO: increase chunk count
 # TODO: update file metadata when the file is restored
 # TODO: File not found on moving file
+# TODO: Problem when the same file is being uploaded again after being deleted. Gives duplicate records by file_path
 
 # * set auto commit to False for performance
 # file_db = sqlitedict.SqliteDict("internal_db/file.db", autocommit= True)
