@@ -1,8 +1,15 @@
 import boto3
 from botocore.exceptions import ClientError
 
+session = boto3.Session(
+    aws_access_key_id='AKIA4FI2HJLSR6VWQO7X',
+    aws_secret_access_key='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',
+    region_name='us-east-1',
+)
+
 # S3 client
-s3 = boto3.client('s3')
+# s3 = boto3.client('s3')
+s3 = session.resource('s3')
 
 bucketName = 'battyfer'
 
