@@ -70,6 +70,8 @@ def create_dir(rel_path):
 # ! updates might be slow
 def modify_file(rel_path):
     abs_path = os.path.join(config.Config.ROOT_DIR, rel_path)
+    if not os.path.exists(abs_path):
+        return
     old_chunks = chunker.get_chunks(abs_path)
     chunk_map = {}
     for chunk in old_chunks:
@@ -111,18 +113,21 @@ def modify_dir(rel_path):
 def move_file(rel_src, rel_dest):
     abs_src = os.path.join(config.Config.ROOT_DIR, rel_src)
     abs_dest = os.path.join(config.Config.ROOT_DIR, rel_dest)
-    # move file
-    shutil.move(abs_src, abs_dest)
-    print("Moved file {} to {}".format(rel_src, rel_dest))
+    # move file, ignore if file doesn't exist
+
+    if os.path.exists(abs_src):
+        shutil.move(abs_src, abs_dest)
+        print("Moved file {} to {}".format(rel_src, rel_dest))
 
     pass
 
 def move_dir(rel_src, rel_dest):
     abs_src = os.path.join(config.Config.ROOT_DIR, rel_src)
     abs_dest = os.path.join(config.Config.ROOT_DIR, rel_dest)
-    # move directory
-    shutil.move(abs_src, abs_dest)
-    print("Moved directory {} to {}".format(rel_src, rel_dest))
+    # move directory, ignore if it doesn't exist
+    if os.path.exists(abs_src):
+        shutil.move(abs_src, abs_dest)
+        print("Moved directory {} to {}".format(rel_src, rel_dest))
     pass
 
 
