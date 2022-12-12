@@ -58,6 +58,7 @@ def init_program():
 
     watcher.Watcher()
     
+    # ! Potential bug: Repopulate parent directory fetching metadata before it is uploaded
 
 
 
