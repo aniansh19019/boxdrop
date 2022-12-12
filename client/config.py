@@ -2,10 +2,10 @@ import os
 class Config:
     test_mode = True
     # TODO: make the root dir before accessing
-    # ROOT_DIR = "~/BoxDrop"
+    ROOT_DIR = os.abspath("~/BoxDrop")
     # ROOT_DIR = "../example_sync_dir"
     # ROOT_DIR = "client_one"
-    ROOT_DIR = "client_two"
+    # ROOT_DIR = "client_two"
     RABBIT_MQ_IP = "34.224.214.95"
     # RABBIT_MQ_IP = "localhost"
     MAX_CHUNK_SIZE = 1048576 # Max chunk size in bytes

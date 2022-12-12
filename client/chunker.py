@@ -11,6 +11,7 @@ import config
 import watcher
 import sys
 import shutil
+import auth
 
 # TODO: add chunks database to keep track of the use count of each chunk
 # TODO: add the option to restore deleted files
@@ -69,7 +70,7 @@ def chunk_and_upload_file(filepath):
     "is_deleted": False,
     "path": rel_path,
     "size": os.path.getsize(filepath),
-    "owner": "aniansh@yahoo.com",
+    "owner": auth.user_email(),
     "date_uploaded": datetime.datetime.now().timestamp(),
     "date_created": os.path.getctime(filepath),
     "date_modified": os.path.getmtime(filepath),
@@ -94,7 +95,7 @@ def create_directory_record(dir_path):
             "is_deleted": False,
             "path": rel_path,
             "size": os.path.getsize(dir_path),
-            "owner": "aniansh@yahoo.com",
+            "owner": auth.user_email(),
             "date_uploaded": datetime.datetime.now().timestamp(),
             "date_created": os.path.getctime(dir_path),
             "date_modified": os.path.getmtime(dir_path),
@@ -130,7 +131,6 @@ def build_directory_tree_metadata(sync_dir):
         repopulate_parent_directory(root)
 
         
-        # return the id of the root
         if root == abs_path:
             print(root)
             retval = dir_id
@@ -393,7 +393,7 @@ if __name__ == "__main__":
 
     # root_id = build_directory_tree_metadata("../example_sync_dir")
     # root_id = '44b7b573abd940cd8b55dee77432bd7d'
-    print(root_id)
+    # print(root_id)
 
     # restore_directory_tree(config.Config.ROOT_DIR, root_id)
     # update_file_metadata('')
