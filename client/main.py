@@ -8,6 +8,7 @@ import watcher
 import time
 
 def init_program():
+    welcome_prompt()
     # check if a user is logged in
     if not auth.is_logged_in():
         # if not logged in, ask to login or register
@@ -66,6 +67,7 @@ def init_program():
     pass
 
 
+
 def init_user_record(email):
     # Create a user record and return the record
     user_record = {
@@ -79,4 +81,10 @@ def init_user_record(email):
     return user_record
     pass
 
-init_program()
+def welcome_prompt():
+    print("Welcome to BoxDrop!")
+    print("Initialising the System...")
+    pass
+
+if __name__ == "__main__":
+    init_program()

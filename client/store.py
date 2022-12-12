@@ -1,10 +1,11 @@
 import boto3
+import config
 from botocore.exceptions import ClientError
 
 session = boto3.Session(
-    aws_access_key_id='AKIA4FI2HJLSR6VWQO7X',
-    aws_secret_access_key='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',
-    region_name='us-east-1',
+    aws_access_key_id=config.Config.AWS_ACCESS_KEY_ID,
+    aws_secret_access_key=config.Config.AWS_SECRET_ACCESS_KEY,
+    region_name=config.Config.AWS_REGION_NAME,
 )
 
 # S3 client
@@ -65,7 +66,7 @@ def put_multiple_chunks(hash_list, bytes_list):
 
             # Upload the object to S3
             s3.put_object(Bucket = bucketName, Key = key, Body = value, Metadata = metadata)
-        print('Data uploaded')
+        # print('Data uploaded')
 
     except Exception as e:
         print(e)

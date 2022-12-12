@@ -58,14 +58,12 @@ class MessageReceiverKernel:
 
         print("Received new message! Updating Files...")
         print(message)
-        print(self.observer_ref)
         indexer.handle_update_message(message=message, watcher_ref=self.observer_ref)
 
 
 
 
 def start_consumption(observer_ref):
-    # print(observer_ref)
     consumer = MessageReceiverKernel(observer_ref=observer_ref)
     consumer.start_receiver()
 

@@ -2,7 +2,6 @@ from fastcdc import fastcdc
 import hashlib
 import uuid
 import os
-import random
 import queue
 import datetime
 import store
@@ -133,7 +132,6 @@ def build_directory_tree_metadata(sync_dir):
 
         
         if root == abs_path:
-            print(root)
             retval = dir_id
         print('------------------------------')
     print("Directory Tree Built Successfully!")
@@ -195,10 +193,9 @@ def create_file_metadata(file_path):
     
     # Repopulate the parent directory
 
-    print(file_path)
     parent_path = os.path.dirname(file_path)
-    print(parent_path)
     repopulate_parent_directory(parent_path)
+    print("File record created successfully!")
 
 
 def delete_file_metadata(file_path):
@@ -216,6 +213,7 @@ def delete_file_metadata(file_path):
 
     # update the metadata db
     metadata_db.update_file_record(file_record)
+    print("File deleted from records!")
     
 
     pass
@@ -341,6 +339,7 @@ def move_file_metadata(src, dst):
 
     # update the metadata db
     metadata_db.update_file_record(src_record)
+    print("File metadata moved successfully!")
 
     pass
 
@@ -389,17 +388,6 @@ if __name__ == "__main__":
         elif sys.argv[2] == "watch":
             watcher.Watcher()
 
-
-    
-
-    # root_id = build_directory_tree_metadata("../example_sync_dir")
-    # root_id = '44b7b573abd940cd8b55dee77432bd7d'
-    # print(root_id)
-
-    # restore_directory_tree(config.Config.ROOT_DIR, root_id)
-    # update_file_metadata('')
-    # start the watcher
-    # watcher.Watcher()
     pass
 
 

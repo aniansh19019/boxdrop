@@ -1,20 +1,17 @@
 import pyrebase
 import maskpass
 from sqlitedict import SqliteDict
+import os
+import config
 
 
-firebaseConfig = {
-    "apiKey": "AIzaSyBYHMt5pzxnrfgm_2_LUJHyJzCAGOK8KzI",
-    "authDomain": "cldcauth.firebaseapp.com",
-    "databaseURL": "",
-    "projectId": "cldcauth",
-    "storageBucket": "cldcauth.appspot.com",
-    "messagingSenderId": "661364563492",
-    "appId": "1:661364563492:web:7eeb520dfff35399c8c2b1"
-}
+firebaseConfig = config.Config.FIREBASE_AUTH_CONFIG
 
 firebase = pyrebase.initialize_app(firebaseConfig)
 auth=firebase.auth()
+if not os.path.exists("internal_db"):
+    os.mkdir("internal_db")
+
 db = SqliteDict("internal_db/userLoginState.sqlite")
 USER = False
 
@@ -88,7 +85,7 @@ def logout():
 
 def interface():
     while (1):
-        z = input("\n______________\nWelcome to BoxDrop\nEnter\n0 -> Exit\n1 -> Register a new account\n2 -> Log In\n")
+        z = input("\n______________\nPlease Login to set up BoxDrop on your machine\nEnter\n0 -> Exit\n1 -> Register a new account\n2 -> Log In\n")
         if z=="0":
             return False
         elif z=="1":
@@ -100,8 +97,3 @@ def interface():
         else:
             print("Invalid input, try again")
 
-
-# interface()
-# print(is_logged_in())
-# print(user_email())
-# logout()

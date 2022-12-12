@@ -9,6 +9,9 @@ import time
 def handle_update_message(message, watcher_ref):
 
     print("Pausing the watcher before applying received updates!")
+    # ignore modify directory events
+    if message['event_type'] == 'modified' and message['is_dir']:
+        return
     # Pause the watcher
     watcher_ref.stop()
 
@@ -41,7 +44,7 @@ def handle_update_message(message, watcher_ref):
         pass
     # resume the watcher
     # ! Hacky timer fix
-    time.sleep(3)
+    time.sleep(4)
 
     watcher_ref.start()
     print("Resuming Watcher")
