@@ -67,6 +67,8 @@ def get_user_record_from_email(email):
     '''
     doc_ref = db.collection("users").where("email", "==", email)
     docs = doc_ref.get()
+    if len(docs) == 0:
+        return None
     return docs[0].to_dict()
     pass
 
@@ -79,6 +81,8 @@ def get_file_record_from_path(file_path):
     '''
     doc_ref = db.collection("files").where("path", "==", file_path)
     docs = doc_ref.get()
+    if len(docs) == 0:
+        return None
     return docs[0].to_dict()
     pass
 

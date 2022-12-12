@@ -1,8 +1,8 @@
 import os
 class Config:
-    test_mode = True
+    test_mode = False
     # TODO: make the root dir before accessing
-    ROOT_DIR = os.abspath("~/BoxDrop")
+    ROOT_DIR = os.path.abspath("~/BoxDrop")
     # ROOT_DIR = "../example_sync_dir"
     # ROOT_DIR = "client_one"
     # ROOT_DIR = "client_two"

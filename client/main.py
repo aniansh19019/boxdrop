@@ -5,6 +5,7 @@ import uuid
 import os
 import chunker
 import watcher
+import time
 
 def init_program():
     # check if a user is logged in
@@ -20,7 +21,7 @@ def init_program():
     user_record = metadata_db.get_user_record_from_email(auth.user_email())
     if user_record == None:
         print("New User! Creating Records!")
-        user_record = init_user_record()
+        user_record = init_user_record(auth.user_email())
         is_new_user = True
     
     # init root directory path
@@ -51,9 +52,13 @@ def init_program():
         pass
 
     # After all the initialisation, start the watcher
+    # ! Hacky Fix
+
+    time.sleep(3)
 
     watcher.Watcher()
     
+
 
 
         
@@ -72,3 +77,5 @@ def init_user_record(email):
     }
     return user_record
     pass
+
+init_program()

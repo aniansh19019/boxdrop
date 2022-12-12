@@ -1,58 +1,107 @@
-import config
-import metadata_db
-# Also build a cli to take user input
-# The interface should have options for login, register, forgot password, logout, etc.
-# The interface should also have the option of selecting the root directory for the user.
-# The interface should also have the option of changing file versions.
-# The interface should also have the option of restoring deleted files.
-# The interface should also have the option of sharing files with other users.
-
-def interface():
-    '''
-    The interface for the user to interact with the client.
-    '''
-    
+import pyrebase
+import maskpass
+from sqlitedict import SqliteDict
 
 
-    # After logging in
-    pass
+firebaseConfig = {
+    "apiKey": "AIzaSyBYHMt5pzxnrfgm_2_LUJHyJzCAGOK8KzI",
+    "authDomain": "cldcauth.firebaseapp.com",
+    "databaseURL": "",
+    "projectId": "cldcauth",
+    "storageBucket": "cldcauth.appspot.com",
+    "messagingSenderId": "661364563492",
+    "appId": "1:661364563492:web:7eeb520dfff35399c8c2b1"
+}
 
-
-def user_email():
-    '''
-    Returns the email of the current user.
-    '''
-    pass
+firebase = pyrebase.initialize_app(firebaseConfig)
+auth=firebase.auth()
+db = SqliteDict("internal_db/userLoginState.sqlite")
+USER = False
 
 
 def is_logged_in():
-    '''
-    Checks if the user is logged in.
-    Returns True if logged in, False otherwise.
-    '''
-    pass
+    if "loggedFlag" not in db:
+        db["loggedFlag"] = False
+    return db["loggedFlag"]
 
 
-def login(email, password):
-    '''
-    Logs in the user with the given email and password.
-    '''
-    pass
+def user_email():
+    if not is_logged_in():
+        return "None"
+    global USER
+    USER = db["user"]
+    return USER["email"]
 
-def forgot_password(email):
-    '''
-    Sends a password reset link to the given email.
-    '''
-    pass
 
-def register(email, password):
-    '''
-    Registers a new user with the given email and password.
-    '''
-    pass
+def register():
+    
+    print("\n______________\nRegister new account")
+    email = input("\nEnter email:")
+    password=maskpass.askpass(prompt="Enter password (atleast 6 characters):", mask="*")
+    rpassword=maskpass.askpass(prompt="Confirm password:", mask="*")
+
+    if (password!=rpassword):
+        print("Passwords do not match.")
+        return
+    
+    try:
+        user = auth.create_user_with_email_and_password(email, password)
+        print("Successful")
+        user = auth.sign_in_with_email_and_password(email, password)
+        loggedIn(user)
+        # print(user)
+    except:
+        print("Registration Failed")
+
+
+def login():
+    print("\n______________\nLogin")
+    email = input("\nEnter email:")
+    password=maskpass.askpass(prompt="Enter password:", mask="*")
+
+    try:
+        user = auth.sign_in_with_email_and_password(email, password)
+        loggedIn(user)
+    except:
+        print("Login failed")
+
+
+def loggedIn(user):
+    print("\n______________\nLoggedIn!\n")
+    global USER
+    USER = user
+
+    # Saving login state in SqliteDict
+    db["loggedFlag"] = True
+    db["user"] = USER
+    db.commit()
+
 
 def logout():
-    '''
-    Logs out the current user.
-    '''
-    pass
+    # Saving login state in SqliteDict
+    global USER
+    USER = False
+    db["loggedFlag"] = False
+    db["user"] = False
+    db.commit()
+
+
+def interface():
+    while (1):
+        z = input("\n______________\nWelcome to BoxDrop\nEnter\n0 -> Exit\n1 -> Register a new account\n2 -> Log In\n")
+        if z=="0":
+            return False
+        elif z=="1":
+            register()
+            return True
+        elif z=="2":
+            login()
+            return True
+        else:
+            print("Invalid input, try again")
+
+
+# interface()
+# print(is_logged_in())
+# print(user_email())
+# logout()
