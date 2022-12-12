@@ -15,8 +15,7 @@ class MessageSender:
     def __init__(self) -> None:
         self.connection = pika.BlockingConnection(pika.ConnectionParameters(host=config.Config.RABBIT_MQ_IP))
         self.channel = self.connection.channel()
-        # TODO: Get user email
-        self.user_email = auth.user_email() or "aniansh@yahoo.com"
+        self.user_email = auth.user_email()
         self.channel.exchange_declare(exchange=self.user_email, exchange_type='fanout')
     
     def send_directory_update(self, message):

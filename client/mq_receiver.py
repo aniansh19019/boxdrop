@@ -12,6 +12,7 @@ import threading
 import os
 import config
 import indexer
+import auth
 
 # TODO terminate thread
 
@@ -21,7 +22,7 @@ class MessageReceiverKernel:
         self.observer_ref = observer_ref
         self.connection = pika.BlockingConnection(pika.ConnectionParameters(host=config.Config.RABBIT_MQ_IP))
         self.channel = self.connection.channel()
-        self.user_email = "aniansh@yahoo.com"
+        self.user_email = auth.user_email()
         self.channel.exchange_declare(exchange=self.user_email, exchange_type='fanout')
         self.queue_name = str(getpass.getuser()) + "@" + str(socket.gethostname()) + "-" + str(uuid.UUID(int=uuid.getnode()))
         if config.Config.test_mode:
