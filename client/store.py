@@ -8,9 +8,11 @@ session = boto3.Session(
     region_name=config.Config.AWS_REGION_NAME,
 )
 
+
 # S3 client
 # s3 = boto3.client('s3')
-s3 = session.resource('s3')
+# s3 = session.resource('s3')
+s3 = session.client(service_name='s3')
 
 bucketName = 'battyfer'
 
