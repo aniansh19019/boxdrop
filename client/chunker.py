@@ -344,12 +344,17 @@ def move_file_metadata(src, dst):
     pass
 
 def build_file_from_chunks(chunk_hashes, file_path):
+    chunk_cache={}
     with open(file_path, "ab") as out_ref:
         total_hashes = len(chunk_hashes)
         current_hash = 1
         for hash in chunk_hashes:
             print("\rChunk {} of {}".format(current_hash, total_hashes), end="")
-            chunk_data = store.get_chunk(hash)
+            chunk_data = None
+            if hash not in chunk_cache.keys():
+                chunk_data = store.get_chunk(hash)
+                chunk_cache[hash] = chunk_data
+            chunk_data = chunk_cache[hash]
             out_ref.write(chunk_data)
             current_hash += 1
         print()
