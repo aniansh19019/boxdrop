@@ -1,21 +1,138 @@
-# BoxDrop - A DropBox Clone
+# BoxDrop - An Efficient File Synchronization Service
 
-BoxDrop is a file synchronisation service which helps users sync their files across multiple devices. BoxDrop uses an efficient file chunking algorithm which saves badnwidth and storage by uploading duplicate data within a file only once and updating only those chunks in the cloud which have been changed on the users' device.
+BoxDrop is a Dropbox-like file synchronization service that enables users to sync files across multiple devices. It uses advanced techniques for efficient storage and bandwidth usage.
+
+## Key Features
+
+- **Efficient File Chunking**: Uses FastCDC (Fast Content-Defined Chunking) algorithm to break files into chunks
+  - Only uploads new/modified chunks, saving bandwidth
+  - Deduplicates data by storing identical chunks only once
+  - Optimizes storage usage across all users' files
+
+- **Real-time Synchronization**
+  - Watches for file system changes (create/modify/delete/move)
+  - Automatically syncs changes across all user devices
+  - Uses message queues for reliable cross-device communication
+  - Maintains file consistency across devices
+
+- **Cloud Storage Backend**
+  - Uses Amazon S3 for reliable chunk storage
+  - Metadata stored separately from file chunks
+  - Efficient chunk-level retrieval and storage
+
+- **User Management**
+  - User authentication and authorization
+  - Per-user storage quota management
+  - Multiple device support per user
+
+## Architecture
+
+The system consists of several key components:
+
+1. **File Chunker (chunker.py)**
+   - Breaks files into variable-sized chunks using FastCDC
+   - Manages chunk metadata and file versioning
+   - Handles file operations (create/update/delete/move)
+
+2. **Storage Manager (store.py)**
+   - Interfaces with Amazon S3 for chunk storage
+   - Handles chunk upload/download operations
+   - Manages chunk existence verification
+
+3. **File Watcher (watcher.py)**
+   - Monitors file system changes in real-time
+   - Triggers appropriate handlers for file events
+   - Manages synchronization across devices
+
+4. **Message Queue System (mq_sender.py, mq_receiver.py)**
+   - Handles cross-device communication
+   - Ensures reliable message delivery
+   - Maintains synchronization order
+
+5. **Metadata Database (metadata_db.py)**
+   - Stores file and chunk metadata
+   - Manages file versioning
+   - Tracks user information and quotas
 
 ## Usage Instructions
 
-To install and use BoxDrop, you need either a MacOS or a Linux system. We assume that you also have `python3` and `virtualenv` installed on your system.
+### Prerequisites
+- Python 3
+- virtualenv
+- MacOS or Linux system
 
-First, clone the repository on to your system. Then follow the following instructions:
+### Installation
 
-```
+1. Clone the repository:
+```bash
+git clone [repository-url]
 cd boxdrop
+```
+
+2. Run the installation script:
+```bash
 chmod u+x install.sh
-chmod u+x run.sh
 ./install.sh
+```
+
+3. Start the BoxDrop client:
+```bash
 ./run.sh
 ```
 
-The BoxDrop client will start and you will be asked to either create an account or to login to an existing account. After loggin in, the BoxDrop client will create a folder in your home directory called `BoxDrop<random_id_characters>`. Once the initialisation process is complete, the client will start monitoring your BoxDrop directory for changes. You can start copying files into this folder to upload them.
+4. Follow the prompts to:
+   - Create an account or login
+   - A new BoxDrop folder will be created in your home directory
+   - The folder name will include a unique identifier: `BoxDrop<random_id>`
 
-You can repeat the same process on another device and you will see that BoxDrop automatically synchronizes both the devices over the internet. So, all your changes made on any one of your devices will be communicated to all your other devices and thus all your files will remain in sync across your multiple devices.
+### Using BoxDrop
+
+1. **Adding Files**
+   - Simply copy or save files into your BoxDrop folder
+   - Files will automatically sync to the cloud
+   - Only new/changed chunks are uploaded
+
+2. **Multi-device Setup**
+   - Install BoxDrop on other devices
+   - Login with the same account
+   - Files will automatically sync across devices
+
+3. **File Operations**
+   - Create, modify, delete, or move files normally
+   - All changes sync automatically
+   - Conflicts are handled based on timestamp
+
+## Implementation Details
+
+### Chunking Algorithm
+
+BoxDrop uses FastCDC for content-defined chunking, which:
+- Creates variable-sized chunks based on content
+- Ensures efficient handling of insertions/deletions
+- Maintains chunk boundaries based on content, not fixed positions
+
+### Storage Optimization
+
+The system optimizes storage by:
+- Storing each unique chunk only once
+- Using content-based addressing (SHA-256 hashing)
+- Tracking chunk usage across files
+- Only uploading modified chunks during updates
+
+### Synchronization Process
+
+1. File system changes are detected by the watcher
+2. Changed files are chunked and analyzed
+3. New/modified chunks are uploaded to S3
+4. Metadata is updated in the database
+5. Change notifications are sent via message queue
+6. Other devices receive updates and sync accordingly
+
+## Future Improvements
+
+- [ ] Add chunk database to track chunk usage count
+- [ ] Implement deleted file restoration
+- [ ] Increase chunk count for better deduplication
+- [ ] Improve file metadata updates during restoration
+- [ ] Add concurrent chunk upload/download support
+- [ ] Implement proper change queue management
